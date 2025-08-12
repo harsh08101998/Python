@@ -1,0 +1,131 @@
+ssh root@079-veeno-2.exotel.in -p 22000
+Mytet@P*l8bza0
+
+
+                'ttsl.sip.com' : {'ob_channel_threshold' : 135, 'protocol' : 'sip', 'telco' : 'ttsl_sip', 'pilot' : '07969083500', 'channel_capacity' : 150},
+                 'airtel.sip.com' : {'ob_channel_threshold' : 419, 'protocol' : 'sip', 'telco' : 'airtel_sip', 'pilot' : '07948220000', 'channel_capacity' : 465},
+                 'vodafone.sip.com' : {'ob_channel_threshold' : 36, 'protocol' : 'sip', 'telco' : 'vodafone_sip', 'pilot' : '07971114545', 'channel_capacity' : 40},
+                 'jio.sip.com' : {'ob_channel_threshold' : 128, 'protocol' : 'sip', 'telco' : 'jio_sip', 'pilot' : '07935048061', 'channel_capacity' : 134},
+                 'vi.sbc.sip.com' : {'ob_channel_threshold' : 70, 'protocol' : 'sip', 'telco' : 'vodafone_sip', 'pilot' : '07971038770', 'channel_capacity' : 77},
+
+
+
++------+------+--------------+------+---------+-------------+-------+----------+-----------------------+--------+---------------------+----------+---------------------+-----------+-------------+
+| id   | card | span         | plan | fcvPlan | pilot       | range | pipetype | operatorAccountNumber | state  | created             | modified | since               | isdStatus | _properties |
++------+------+--------------+------+---------+-------------+-------+----------+-----------------------+--------+---------------------+----------+---------------------+-----------+-------------+
+| 7079 |  793 | ttsl.sip.com |  124 |     177 | 07969083500 |   100 | trans    | TTSL SIP INDIA        | active | 2022-06-11 15:42:34 | NULL     | 2022-06-11 15:42:34 | disabled  | NULL        |
+| 7084 |  794 | ttsl.sip.com |  124 |     177 | 07969083500 |   100 | trans    | TTSL SIP INDIA        | active | 2022-06-12 17:26:18 | NULL     | 2022-06-12 17:26:18 | disabled  | NULL        |
+| 7085 |  796 | ttsl.sip.com |  124 |     177 | 07969083500 |   100 | trans    | TTSL SIP INDIA        | active | 2022-06-12 17:26:48 | NULL     | 2022-06-12 17:26:48 | disabled  | NULL        |
+| 7086 |  798 | ttsl.sip.com |  124 |     177 | 07969083500 |   100 | trans    | TTSL SIP INDIA        | active | 2022-06-12 17:27:17 | NULL     | 2022-06-12 17:27:17 | disabled  | NULL        |
+| 7087 |  795 | ttsl.sip.com |  124 |     177 | 07969083500 |   100 | trans    | TTSL SIP INDIA        | active | 2022-06-13 17:30:00 | NULL     | 2022-06-13 17:30:00 | disabled  | NULL        |
+
++------+------+----------------+------+---------+-------------+-------+----------+-----------------------+--------+---------------------+----------+---------------------+-----------+-------------+
+| id   | card | span           | plan | fcvPlan | pilot       | range | pipetype | operatorAccountNumber | state  | created             | modified | since               | isdStatus | _properties |
++------+------+----------------+------+---------+-------------+-------+----------+-----------------------+--------+---------------------+----------+---------------------+-----------+-------------+
+| 7080 |  793 | airtel.sip.com |  125 |     179 | 07948220000 |   100 | trans    | AIRTEL SIP INDIA      | active | 2022-06-11 15:44:46 | NULL     | 2022-06-11 15:44:46 | enabled   | NULL        |
+| 7081 |  794 | airtel.sip.com |  125 |     179 | 07948220000 |   100 | trans    | AIRTEL SIP INDIA      | active | 2022-06-12 17:24:40 | NULL     | 2022-06-12 17:24:40 | enabled   | NULL        |
+| 7082 |  796 | airtel.sip.com |  125 |     179 | 07948220000 |   100 | trans    | AIRTEL SIP INDIA      | active | 2022-06-12 17:25:15 | NULL     | 2022-06-12 17:25:15 | enabled   | NULL        |
+
+
++------+------+------------------+------+---------+-------------+-------+----------+-----------------------+--------+---------------------+----------+---------------------+-----------+-------------+
+| id   | card | span             | plan | fcvPlan | pilot       | range | pipetype | operatorAccountNumber | state  | created             | modified | since               | isdStatus | _properties |
++------+------+------------------+------+---------+-------------+-------+----------+-----------------------+--------+---------------------+----------+---------------------+-----------+-------------+
+| 7416 |  802 | vodafone.sip.com |  138 |     192 | 07971114545 |   100 | trans    | VODAFONE SIP          | active | 2022-09-23 00:42:09 | NULL     | 2022-09-23 00:42:09 | disabled  | NULL        |
+| 7417 |  803 | vodafone.sip.com |  138 |     192 | 07971114545 |   100 | trans    | VODAFONE SIP          | active | 2022-09-23 00:42:43 | NULL     | 2022-09-23 00:42:43 | disabled  | NULL        |
+| 7418 |  804 | vodafone.sip.com |  138 |     192 | 07971114545 |   100 | trans    | VODAFONE SIP          | active | 2022-09-23 00:43:16 | NULL     | 2022-09-23 00:43:16 | disabled  | NULL        |
+
+
++------+------+-------------+------+---------+-------------+-------+----------+-----------------------+--------+---------------------+----------+---------------------+-----------+-------------+
+| id   | card | span        | plan | fcvPlan | pilot       | range | pipetype | operatorAccountNumber | state  | created             | modified | since               | isdStatus | _properties |
++------+------+-------------+------+---------+-------------+-------+----------+-----------------------+--------+---------------------+----------+---------------------+-----------+-------------+
+| 7454 |  802 | jio.sip.com |  139 |     193 | 07935048061 |   100 | trans    | JIO SIP               | active | 2022-09-23 01:18:33 | NULL     | 2022-09-23 01:18:33 | disabled  | NULL        |
+| 7455 |  803 | jio.sip.com |  139 |     193 | 07935048061 |   100 | trans    | JIO SIP               | active | 2022-09-23 01:19:06 | NULL     | 2022-09-23 01:19:06 | disabled  | NULL        |
+| 7456 |  804 | jio.sip.com |  139 |     193 | 07935048061 |   100 | trans    | JIO SIP               | active | 2022-09-23 01:19:40 | NULL     | 2022-09-23 01:19:40 | disabled  | NULL        |
+
+
+parameters = [{
+    "server_code": "079_veeno_02",
+    "pilotNumber": "07971114545", 
+    "plan": "138",
+    "fcvPlan": "192",
+    "range": "100",
+    "pipeType": "trans",
+    "isdStatus": "disabled",
+    "operatorAccountNumber": "VODAFONE SIP ",
+    "slot_number_for_card": "3",
+    "spans": "vodafone.sip.com"
+},
+{
+    "server_code": "079_veeno_02",
+    "pilotNumber": "07935048061", 
+    "plan": "139",
+    "fcvPlan": "193",
+    "range": "100",
+    "pipeType": "trans",
+    "isdStatus": "disabled",
+    "operatorAccountNumber": "JIO SIP",
+    "slot_number_for_card": "3",
+    "spans": "jio.sip.com"
+},
+{
+    "server_code": "079_veeno_02",
+    "pilotNumber": "07971038770", 
+    "plan": "260",
+    "fcvPlan": "288",
+    "range": "100",
+    "pipeType": "trans",
+    "isdStatus": "inactive",
+    "operatorAccountNumber": "VODAFONE SIP",
+    "slot_number_for_card": "3",
+    "spans": "vi.sbc.sip.com"
+}
+]
+
+
+
++------+------+----------------+------+---------+-------------+-------+----------+-----------------------+--------+---------------------+----------+---------------------+-----------+-------------+
+| id   | card | span           | plan | fcvPlan | pilot       | range | pipetype | operatorAccountNumber | state  | created             | modified | since               | isdStatus | _properties |
++------+------+----------------+------+---------+-------------+-------+----------+-----------------------+--------+---------------------+----------+---------------------+-----------+-------------+
+| 9090 |  793 | vi.sbc.sip.com |  260 |     288 | 07971038770 |   100 | trans    | VODAFONE SIP          | active | 2025-03-03 13:44:38 | NULL     | 2025-03-03 13:44:38 | inactive  | NULL        |
+| 9091 |  794 | vi.sbc.sip.com |  260 |     288 | 07971038770 |   100 | trans    | VODAFONE SIP          | active | 2025-03-03 13:46:53 | NULL     | 2025-03-03 13:46:53 | inactive  | NULL        |
+
+[root@079-veeno-2 ~]# ifconfig
+ens192: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 122.187.205.168  netmask 255.255.255.224  broadcast 122.187.205.191
+        inet6 fe80::20c:29ff:fe78:c203  prefixlen 64  scopeid 0x20<link>
+        ether 00:0c:29:78:c2:03  txqueuelen 1000  (Ethernet)
+        RX packets 26080849  bytes 2993846780 (2.7 GiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 12466801  bytes 1957853270 (1.8 GiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+ens224: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 219.65.60.57  netmask 255.255.255.224  broadcast 219.65.60.63
+        inet6 fe80::20c:29ff:fe78:c20d  prefixlen 64  scopeid 0x20<link>
+        ether 00:0c:29:78:c2:0d  txqueuelen 1000  (Ethernet)
+        RX packets 19133622  bytes 2096932110 (1.9 GiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 10068131  bytes 1462819824 (1.3 GiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 45181423  bytes 9077139196 (8.4 GiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 45181423  bytes 9077139196 (8.4 GiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+
+
+curl -X POST https://exotelt:eb9132081dad84d938f207227c8a7e26467cbbeb5ed1151b@api.exotel.com/v1/Accounts/exotelt/Calls/connect -d 'From=08570027091' -d 'CallerId=07969083502' -d 'To=07988532204&__RequestedServerCode=079_veeno_01&__IgnoreServerStatus=true'
+
+
+
+073-11
+
+aws s3 cp $S3_BUCKET/ts-ami-setup-$VERSION.tar.gz ts-ami-setup-$VERSION.tar.gz
+
+
+s3://exotel-build/ts-ami-setup/prod/ts-ami-setup

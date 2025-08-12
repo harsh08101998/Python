@@ -1,0 +1,44 @@
+2024-10-01 15:38:55,694 - instabot version: 0.117.0 (bot) - INFO - Instabot version: 0.117.0 Started
+2024-10-01 15:38:55,694 - instabot version: 0.117.0 (bot) - DEBUG - Bot imported from /home/harshkumar/.local/lib/python3.10/site-packages/instabot/bot/bot.py
+2024-10-01 15:38:55,695 - instabot version: 0.117.0 (api_login) - DEBUG - Loading cookies
+2024-10-01 15:38:55,695 - instabot version: 0.117.0 (api_login) - DEBUG - Loading uuids
+2024-10-01 15:38:55,695 - instabot version: 0.117.0 (api_login) - INFO - Recovery from /home/harshkumar/Python/config/softskilliq@gmail.com_uuid_and_cookie.json: COOKIE True - UUIDs True - TIMING, DEVICE and ...
+- user-agent=Instagram 117.0.0.28.123 Android (28/9.0; 420dpi; 1080x1920; OnePlus; ONEPLUS A3003; OnePlus3; qcom; en_US; 180322800)
+- phone_id=b25c1c6e-e6bc-43af-bc0c-8e1464501098
+- uuid=cf782115-4d74-48ff-9fb4-3a051d6a1e5c
+- client_session_id=8df0208c-35ad-4933-9c6e-db23e8db4abe
+- device_id=android-7d1a502c0568131e
+2024-10-01 15:38:55,695 - instabot version: 0.117.0 (api_login) - INFO - LOGIN FLOW! Just logged-in: False
+2024-10-01 15:38:56,075 - instabot version: 0.117.0 (api) - DEBUG - POST to endpoint: feed/timeline/ returned response: <Response [429]>
+2024-10-01 15:38:56,075 - instabot version: 0.117.0 (api) - DEBUG - Responsecode indicates error; response content: b'{"message":"prefetch disabled","status":"fail"}'
+2024-10-01 15:38:56,075 - instabot version: 0.117.0 (api) - ERROR - Request returns 429 error!
+2024-10-01 15:38:56,444 - instabot version: 0.117.0 (api) - DEBUG - POST to endpoint: feed/reels_tray/ returned response: <Response [429]>
+2024-10-01 15:38:56,444 - instabot version: 0.117.0 (api) - DEBUG - Responsecode indicates error; response content: b'{"message":"prefetch disabled","status":"fail"}'
+2024-10-01 15:38:56,444 - instabot version: 0.117.0 (api) - ERROR - Request returns 429 error!
+2024-10-01 15:38:56,445 - instabot version: 0.117.0 (api) - INFO - Login flow failed, the cookie is broken. Relogin again.
+2024-10-01 15:38:56,445 - instabot version: 0.117.0 (api_login) - DEBUG - Loading cookies
+2024-10-01 15:38:56,445 - instabot version: 0.117.0 (api_login) - DEBUG - Loading uuids
+2024-10-01 15:38:56,445 - instabot version: 0.117.0 (api_login) - INFO - Recovery from /home/harshkumar/Python/config/softskilliq@gmail.com_uuid_and_cookie.json: COOKIE True - UUIDs True - TIMING, DEVICE and ...
+- user-agent=Instagram 117.0.0.28.123 Android (28/9.0; 420dpi; 1080x1920; OnePlus; ONEPLUS A3003; OnePlus3; qcom; en_US; 180322800)
+- phone_id=b25c1c6e-e6bc-43af-bc0c-8e1464501098
+- uuid=cf782115-4d74-48ff-9fb4-3a051d6a1e5c
+- client_session_id=8df0208c-35ad-4933-9c6e-db23e8db4abe
+- device_id=android-7d1a502c0568131e
+2024-10-01 15:38:56,446 - instabot version: 0.117.0 (api_login) - INFO - Not yet logged in starting: PRE-LOGIN FLOW!
+2024-10-01 15:38:56,819 - instabot version: 0.117.0 (api) - DEBUG - POST to endpoint: accounts/get_prefill_candidates/ returned response: <Response [429]>
+2024-10-01 15:38:56,820 - instabot version: 0.117.0 (api) - DEBUG - Responsecode indicates error; response content: b'{"message":"prefetch disabled","status":"fail"}'
+2024-10-01 15:38:56,820 - instabot version: 0.117.0 (api) - ERROR - Request returns 429 error!
+2024-10-01 15:38:57,142 - instabot version: 0.117.0 (api) - DEBUG - POST to endpoint: qe/sync/ returned response: <Response [429]>
+2024-10-01 15:38:57,142 - instabot version: 0.117.0 (api) - DEBUG - Responsecode indicates error; response content: b'{"message":"prefetch disabled","status":"fail"}'
+2024-10-01 15:38:57,142 - instabot version: 0.117.0 (api) - ERROR - Request returns 429 error!
+2024-10-01 15:38:57,567 - instabot version: 0.117.0 (api) - DEBUG - POST to endpoint: launcher/sync/ returned response: <Response [429]>
+2024-10-01 15:38:57,567 - instabot version: 0.117.0 (api) - DEBUG - Responsecode indicates error; response content: b'{"message":"prefetch disabled","status":"fail"}'
+2024-10-01 15:38:57,567 - instabot version: 0.117.0 (api) - ERROR - Request returns 429 error!
+2024-10-01 15:38:57,920 - instabot version: 0.117.0 (api) - DEBUG - POST to endpoint: accounts/contact_point_prefill/ returned response: <Response [429]>
+2024-10-01 15:38:57,920 - instabot version: 0.117.0 (api) - DEBUG - Responsecode indicates error; response content: b'{"message":"prefetch disabled","status":"fail"}'
+2024-10-01 15:38:57,920 - instabot version: 0.117.0 (api) - ERROR - Request returns 429 error!
+2024-10-01 15:38:58,309 - instabot version: 0.117.0 (api) - DEBUG - POST to endpoint: accounts/login/ returned response: <Response [429]>
+2024-10-01 15:38:58,310 - instabot version: 0.117.0 (api) - DEBUG - Responsecode indicates error; response content: b'{"message":"prefetch disabled","status":"fail"}'
+2024-10-01 15:38:58,310 - instabot version: 0.117.0 (api) - ERROR - Request returns 429 error!
+2024-10-01 15:38:58,310 - instabot version: 0.117.0 (api) - ERROR - Failed to login go to instagram and change your password
+2024-10-01 15:38:58,310 - instabot version: 0.117.0 (api) - INFO - Username or password is incorrect.

@@ -1,0 +1,14 @@
+import mysql.connector
+import csv
+
+# '10.1.2.29','postern','spyonme','exotel
+
+listt=['72networks1m','Dummy','Exotel','accenture1m','adityabirlacapital1m','adityabirlacapital23m','adityabirlacapital2m','adityabirlacapital48m','adlbsolutions1m','agrostar1m','ameyo1m','ameyo2m','ameyo3m','angelbroking1m','anveya1m','armman1m','avanienterprises1m','avivaindia1m','avivainfo1m','bajajallianz2m','bajajallianz3m','bajajallianz4m','bajajallianz7m','bharatpe2m','blah51m','cams510m','cams511m','cams512m','cams514m','cams517m','cams52m','cams54m','cams55m','cams59m','cams61m','cams62m','camslnt1m','camsonline3m','camsonline4m','cardsplay','cattleyatechnosys1m','ccplexopoc1m','chingari1m','coindcx1m','connectionsdirect1m','conneqtbusinessservices1m','conneqtbusinesssolutions1m','conneqtbusinesssolutions2m','creditonepayments1m','default','dharmalife1m','donnotcall1','donotcall1','donotcall24','donotcall26','donotcall50','donotcall59','donotcall60','donotcall68','donotcall69','donotcall70','donotcall71','donotcall72','donotcall77','donotcall78','exo5c1b','exotel20','exotel29','exotel2m','exotel30m','exotel31m','exotel32','exotel42m','exotel46m','exotel49','exotel4m','exotel51','exotel57m','exotelbugtestmum1m','exotelbugtestmumtele1m','exoteldonotcall3m','exoteltechcom1m','exotest1m','findeed1m','fyers1m','getveganway1m','getvymo1m','gichf1m','globalbees1m','gmoney1m','gocollab','greenlightplanet1m','hdfc51m','hdfcbank10m','hdfcbank3m','hdfcbank4m','hdfcsec1m','healthylife1m','hssupplychain1m','icanpe1m','icicibank100m','icicibank104m','icicibank144m','icicibank145m','icicibank146m','icicibank147m','icicibank1m','icicibank26m','icicibank2m','icicibank38m','icicibank40m','icicibank99m','icicisecurities1m','idfcfirstbank10m','idfcfirstbank1m','indianmoney1m','infosys1m','inthreeaccess1m','kotak3m','kotak4m','lnfinvest1m','mahindra1m','midlandmicrofin1m','muthoot1m','myspotlight1m','navi51m','navi61m','nexusi1m','nirmalbang1m','pennco1m','penncoenterprises1m','raushankumar7','raushankumar8','raushankumar9','rblbank1m','rblbank2m','rblbank3m','rblfinserve1m','relianceada1m','revolutionarynutrition1m','rlexotest1m','rpggroup1m','rpggroup2m','satsureanalyticsindia1m','sgagtech1m','skit61m','suportbackup1m','tcs5f1m','tcs601m','tcs611m','teamvedika1m','testexotel','thecadre1m','timesinternet1m','toyotaconnected1m','truecaller1m','truesoftwarescandinaviaab1m','ts6091m','unicef1m','urjamoney1m','uwbengaluru1m','velocity1m','vishienterprises1m','visionaryskincare1m']
+conn=mysql.connector.connect(host='10.1.2.29', user='postern', password='spyonme', database='exotel 
+my_cursor=conn.cursor()
+
+for i in listt:
+    query="select count(DISTINCT user_id) from audit_log where type='log_in' and event_time >= '2022-03-01 00:00:00' and  event_time <= '2022-03-31 23:59:59' and tenant_id in(select id from tenants where name='{} ".format(i)
+    my_cursor.execute(query)
+    data=my_cursor.fetchall()
+    print(i,',',data[0][0])

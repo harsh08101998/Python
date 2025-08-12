@@ -1,0 +1,155 @@
+ssh -i Harsh/centos.pem  asterisk@080-32.exotel.in -p 22000
+
+
+
+
+mysql> select * from Server where host='080-28.exotel.in'\G;
+*************************** 1. row ***************************
+         id: 131
+      model: Dell Poweredge R740. S no - D5RVGY2
+   location: Bangalore
+    created: 2019-12-16 11:26:09
+   modified: 2025-07-22 00:51:58
+      since: 2019-12-16 11:26:09
+     status: inactive
+       plan: NULL
+    storage: 2 x 600GB
+        RAM: 32GB
+  Processor: Xeon-R Gold 5122 CPU @ 3.60GHz
+     region: KA
+ datacenter: Ctrls Datacenters; Electronic City;3rd floor;
+       code: 080_28
+       host: 080-28.exotel.in
+    dc_code: NULL
+_properties: NULL
+1 row in set (0.00 sec)
+
+ERROR: 
+No query specified
+
+mysql> select * from Server where host='080-32.exotel.in'\G;
+*************************** 1. row ***************************
+         id: 135
+      model: Dell Poweredge R740. S No: 22YXGY2
+   location: Bangalore
+    created: 2019-12-16 11:28:12
+   modified: 2025-03-25 12:30:25
+      since: 2019-12-16 11:28:12
+     status: inactive
+       plan: NULL
+    storage: 2 x 600GB
+        RAM: 32GB
+  Processor: Xeon-R Gold 5122 CPU @ 3.60GHz
+     region: KA
+ datacenter: Ctrls Datacenters; Electronic City;3rd floor;
+       code: 080_32
+       host: 080-32.exotel.in
+    dc_code: NULL
+_properties: NULL
+
+
+
+curl -X POST https://exotelt:eb9132081dad84d938f207227c8a7e26467cbbeb5ed1151b@api.exotel.com/v1/Accounts/exotelt/Calls/connect -d 'From=09972722533' -d 'CallerId=08045691470' -d 'To=09972722533&__RequestedServerCode=080_28&__IgnoreServerStatus=true'
+
+
+2025-07-22T08:12:58.978Z {name=tw-public-135-spot} 10.0.0.214 35.154.174.161 - exotelt 22/Jul/2025:13:42:58.389 "POST /v1/Accounts/exotelt/Calls/connect HTTP/1.1" 500 175 "-" "curl/8.7.1" 252948 aH9ICn8AAAEAABDkWykAAAAG 
+
+
+[twilix.exotel.com:aH9ICn8AAAEAABDkWykAAAAG POST /v1/Accounts/exotelt/Calls/connect] [AdhearsionManager] Exception when contacting Ahn; Url=[http://14.195.245.3:5000/make_call]; Proxy=[]; Msg=[7:Failed to connect to 14.195.245.3 port 5000: Connection refused]; no-error
+
+[twilix.exotel.com:aH9ICn8AAAEAABDkWykAAAAG POST /v1/Accounts/exotelt/Calls/connect] [AdhearsionManager] HTTP Response: Status=[503]; Url=[http://08028.localhost:22110/make_call];
+
+
+
+systemctl status asterisk
+● asterisk.service - LSB: Asterisk PBX
+   Loaded: loaded (/etc/rc.d/init.d/asterisk; bad; vendor preset: disabled)
+   Active: failed (Result: signal) since Tue 2025-07-22 03:43:32 IST; 10h ago
+     Docs: man:systemd-sysv-generator(8)
+  Process: 3865 ExecStop=/etc/rc.d/init.d/asterisk stop (code=exited, status=0/SUCCESS)
+  Process: 31233 ExecStart=/etc/rc.d/init.d/asterisk start (code=exited, status=0/SUCCESS)
+ Main PID: 31464 (code=killed, signal=KILL)
+
+Jul 22 03:42:33 080-28.exotel.in systemd[1]: Can't open PID file /var/run/asterisk/asterisk.pid (yet?) after start: No such file or directory
+Jul 22 03:42:33 080-28.exotel.in systemd[1]: asterisk.service: Supervising process 31464 which is not our child. We'll most likely not notice when it exits.
+Jul 22 03:42:33 080-28.exotel.in systemd[1]: Started LSB: Asterisk PBX.
+Jul 22 03:43:29 080-28.exotel.in systemd[1]: Stopping LSB: Asterisk PBX...
+Jul 22 03:43:29 080-28.exotel.in asterisk[3865]: Stopping safe_asterisk: [  OK  ]
+Jul 22 03:43:32 080-28.exotel.in systemd[1]: asterisk.service: main process exited, code=killed, status=9/KILL
+Jul 22 03:43:32 080-28.exotel.in asterisk[3865]: Shutting down asterisk: [  OK  ]
+Jul 22 03:43:32 080-28.exotel.in systemd[1]: Stopped LSB: Asterisk PBX.
+Jul 22 03:43:32 080-28.exotel.in systemd[1]: Unit asterisk.service entered failed state.
+Jul 22 03:43:32 080-28.exotel.in systemd[1]: asterisk.service failed.
+
+
+
+sudo service beanstalkd status
+sudo service dnsmasq status
+sudo service rsyslog status
+sudo service squid status
+sudo service vsftpd status
+sudo service fail2ban status
+sudo service asterisk status
+sudo systemctl status ahn
+sudo systemctl status firefoot-ts
+sudo systemctl status amix
+sudo systemctl status eventshipper
+sudo systemctl status causix
+sudo systemctl status causixenqueuer
+sudo systemctl service voipmonitor
+sudo systemctl service fangorn
+
+select * from Pri where card in (select id from Card where server in (select id from Server where code ='080_28')) order by span limit 30;
+
+
+number='08045243232'
+number='08045246232'
+number='08045243732'
+number='08044620202'
+number='08045674600'
+number='08062314002'
+number='08062322702'
+number='08035730092'
+number='08035009097'
+number='08035273380'
+number='08037905006'
+number='08037902504'
+number='08038024002'
+number='09513963739'
+
+
+
+080-32 test cases
+08045243232 :- 9076e078bb534c9137d93b371fd3197o
+08045246232 :- 1cb4701b3f1c090c92d93d410928197o
+08045243732 :- 2c23cb378c02517d2dc17731dc97197o
+08044620202 :- ce34e09f1bf05dfd0e030e937d1d197o
+08047359899 :- 7d64249b8ad5650ee88a78208d8d197o
+08062322702 :- fe81bd51dbb7ba9dab5f8276600d197o
+08035009097 :- ba2ace88485339eab44a046e0372197o
+08037905006 :- 89bfe91d3fac6199c05685ab43b8197o
+08035273380 :- 89dda5b2dc9dbd58a85040d27e65197o
+Error: 08062314002 : {"RestException":{"Status":503,"Message":"Service Unavailable; ","Code":35008}}
+Error: 08035730092 : {"RestException":{"Status":503,"Message":"Service Unavailable; ","Code":35101}}
+Error: 08037902504 : {"RestException":{"Status":503,"Message":"Service Unavailable; ","Code":35008}}
+Error: 08038024002 : {"RestException":{"Status":403,"Message":"Could not find any pipe(s) through which call (to [08570027091]) can be made"}}
+Error: 09513963739 : {"RestException":{"Status":503,"Message":"Service Unavailable; ","Code":35101}}
+
+
+
+080-28 test cases 
+
+08045243232 :- 9a55a6f6b7c1f597535bbab2c9c5197o
+08045246232 :- fe5a1a77364743e6672a381e41df197o
+08045243732 :- b174370ffd03d5f4ca9b380ae134197o
+08062322702 :- 2cda658e4c56a034c1583c832413197o
+08035009097 :- 1b543e948193b86cafdc47992087197o
+08037905006 :- 10a4464bf16856784edcd8ec2bb0197o
+08035273380 :- 3729c9b2ca90b7478d091454a781197o
+Error: 08044620202 : {"RestException":{"Status":503,"Message":"Service Unavailable; ","Code":35008}}
+Error: 08047359899 : {"RestException":{"Status":503,"Message":"Service Unavailable; ","Code":35008}}
+Error: 08062314002 : {"RestException":{"Status":503,"Message":"Service Unavailable; ","Code":35008}}
+Error: 08035730092 : {"RestException":{"Status":503,"Message":"Service Unavailable; ","Code":35101}}
+Error: 08037902504 : {"RestException":{"Status":503,"Message":"Service Unavailable; ","Code":35008}}
+Error: 08038024002 : {"RestException":{"Status":403,"Message":"Could not find any pipe(s) through which call (to [08570027091]) can be made"}}
+Error: 09513963739 : {"RestException":{"Status":503,"Message":"Service Unavailable; ","Code":35101}}

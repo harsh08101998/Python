@@ -1,0 +1,102 @@
+ssh root@079-veeno-1.exotel.in -p 22000
+Mkty@P*l8bza0
+
+
+  done              'airtel.sip.com' : {'ob_channel_threshold' : 419, 'protocol' : 'sip', 'telco' : 'airtel_sip', 'pilot' : '07948220000', 'channel_capacity' : 465},
+  done               'vodafone.sip.com' : {'ob_channel_threshold' : 36, 'protocol' : 'sip', 'telco' : 'vodafone_sip', 'pilot' : '07971114545', 'channel_capacity' : 40},
+                 'jio.sip.com' : {'ob_channel_threshold' : 128, 'protocol' : 'sip', 'telco' : 'jio_sip', 'pilot' : '07935048061', 'channel_capacity' : 134},
+
+
+
+[root@079-veeno-1 ~]# ifconfig
+ens192: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 122.187.205.169  netmask 255.255.255.224  broadcast 122.187.205.191
+        inet6 fe80::20c:29ff:fee0:4ce8  prefixlen 64  scopeid 0x20<link>
+        ether 00:0c:29:e0:4c:e8  txqueuelen 1000  (Ethernet)
+        RX packets 9179750  bytes 868616023 (828.3 MiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 3163840  bytes 433142454 (413.0 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+ens224: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 219.65.60.56  netmask 255.255.255.224  broadcast 219.65.60.63
+        inet6 fe80::20c:29ff:fee0:4cf2  prefixlen 64  scopeid 0x20<link>
+        ether 00:0c:29:e0:4c:f2  txqueuelen 1000  (Ethernet)
+        RX packets 10586474  bytes 1323705617 (1.2 GiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 7662897  bytes 1509952922 (1.4 GiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+ens256: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.71.107  netmask 255.255.255.0  broadcast 192.168.71.255
+        inet6 fe80::20c:29ff:fee0:4cfc  prefixlen 64  scopeid 0x20<link>
+        ether 00:0c:29:e0:4c:fc  txqueuelen 1000  (Ethernet)
+        RX packets 620974  bytes 36462208 (34.7 MiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 167943  bytes 17686305 (16.8 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 54970855  bytes 10642835106 (9.9 GiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 54970855  bytes 10642835106 (9.9 GiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+
+
+
++------+------+----------------------+------+---------+-----------------+-------+----------+-----------------------+--------+---------------------+---------------------+---------------------+-----------+-------------+
+| id   | card | span                 | plan | fcvPlan | pilot           | range | pipetype | operatorAccountNumber | state  | created             | modified            | since               | isdStatus | _properties |
++------+------+----------------------+------+---------+-----------------+-------+----------+-----------------------+--------+---------------------+---------------------+---------------------+-----------+-------------+
+| 8783 |  914 | G36                  |  233 |     259 | 07969214200     |   100 | trans    | TATA VEENO SIP P4     | dead   | 2024-05-31 05:06:39 | 2024-05-31 10:59:25 | 2024-05-31 05:06:39 | disabled  | NULL        |
+| 9311 |  914 | airtel.sip.com       |  125 |     179 | 07948220000     |   100 | trans    | AIRTEL SIP INDIA      | active | 2025-07-16 10:52:14 | NULL                | 2025-07-16 10:52:14 | enabled   | NULL        |
+| 9313 |  914 | jio.sip.com          |  139 |     193 | 07935048061     |   100 | trans    | JIO SIP               | active | 2025-07-16 11:01:30 | NULL                | 2025-07-16 11:01:30 | disabled  | NULL        |
+| 8839 |  914 | pstn.mum1.exotel.com |    1 |      87 | sip:07985580300 |   100 | trans    | IP platform           | active | 2024-09-30 17:57:49 | NULL                | 2024-09-30 17:57:49 | enabled   | NULL        |
+| 9310 |  914 | ttsl.sip.com         |  124 |     177 | 07969083500     |   100 | trans    | TTSL SIP INDIA        | active | 2025-07-16 10:43:38 | NULL                | 2025-07-16 10:43:38 | disabled  | NULL        |
+| 8785 |  914 | ttsl4.sbc.exotel.com |  214 |     242 | 07969214200     |   100 | trans    | TATA VEEENO SIP P4    | active | 2024-05-31 11:12:28 | NULL                | 2024-05-31 11:12:28 | enabled   | NULL        |
+| 9309 |  914 | vi.sbc.sip.com       |  260 |     288 | 07971038770     |   100 | trans    | VODAFONE SIP          | active | 2025-07-15 14:32:16 | NULL                | 2025-07-15 14:32:16 | inactive  | NULL        |
+| 9312 |  914 | vodafone.sip.com     |  138 |     192 | 07971114545     |   100 | trans    | VODAFONE SIP          | active | 2025-07-16 10:57:10 | NULL                | 2025-07-16 10:57:10 | disabled  | NULL        |
++------+------+----------------------+------+---------+-----------------+-------+----------+-----------------------+--------+---------------------+---------------------+---------------------+-----------+-------------+
+
+
+
+
+
+[root@079-veeno-1 ~]# cat /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+127.0.0.1 122.187.205.169
+127.0.0.1 079-veeno-1.exotel.in
+# BEGIN ANSIBLE MANAGED BLOCK
+127.0.0.1       googlixq.exotel.in
+127.0.0.1       billixq.exotel.in
+# For Homeopathix
+54.251.34.4     googlixrealq.exotel.in
+54.251.34.4     billixrealq.exotel.in
+# END ANSIBLE MANAGED BLOCK
+52.220.31.189 nagios-server
+10.0.0.220 graphite.exotel.in
+192.168.71.9 vi.sbc.sip.com 
+192.168.1.96 airtel.sip.com
+192.168.77.9 ttsl.sip.com
+192.168.74.9 jio.sip.com
+192.168.75.9 vodafone.sip.com
+192.168.78.9 ttsl3.sbc.exotel.com
+192.168.79.9 ttsl4.sbc.exotel.com
+
+
+
+
+b9fbe21d9896eff0ca6caa545d11197g :- 07969083500
+a15532cc50ff77c968e64bb642b1197g - 7971114545
+60c719c4f01bfb58b2243f22614a197g :- 7935048061
+07948220000 :-  <Status>503</Status>  <Message>Service Unavailable; </Message>
+
+
+curl -X POST https://exotelt:eb9132081dad84d938f207227c8a7e26467cbbeb5ed1151b@api.exotel.com/v1/Accounts/exotelt/Calls/connect -d 'From=08570027091' -d 'CallerId=07971114547' -d 'To=07002502828&__RequestedServerCode=079_veeno_01&__IgnoreServerStatus=true&Record=true'
+
+
+

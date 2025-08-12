@@ -1,0 +1,22 @@
+2024-10-01 15:33:38,916 - instabot version: 0.117.0 (bot) - INFO - Instabot version: 0.117.0 Started
+2024-10-01 15:33:38,916 - instabot version: 0.117.0 (bot) - DEBUG - Bot imported from /home/harshkumar/.local/lib/python3.10/site-packages/instabot/bot/bot.py
+2024-10-01 15:33:38,917 - instabot version: 0.117.0 (api_login) - DEBUG - Loading cookies
+2024-10-01 15:33:38,917 - instabot version: 0.117.0 (api_login) - DEBUG - Loading uuids
+2024-10-01 15:33:38,917 - instabot version: 0.117.0 (api_login) - INFO - Recovery from /home/harshkumar/Python/config/iamharsh_kumar_uuid_and_cookie.json: COOKIE True - UUIDs True - TIMING, DEVICE and ...
+- user-agent=Instagram 117.0.0.28.123 Android (28/9.0; 420dpi; 1080x1920; OnePlus; ONEPLUS A3003; OnePlus3; qcom; en_US; 180322800)
+- phone_id=5667cc8b-8359-4b4e-8f39-aacff6674780
+- uuid=2cd11c4d-0a67-4d6e-896e-e31e58cf5a8d
+- client_session_id=6bb2e246-94d0-4c44-9246-1803b547d163
+- device_id=android-3f9e114b314313ca
+2024-10-01 15:33:38,917 - instabot version: 0.117.0 (api_login) - INFO - LOGIN FLOW! Just logged-in: False
+2024-10-01 15:33:41,148 - instabot version: 0.117.0 (api) - DEBUG - POST to endpoint: feed/timeline/ returned response: <Response [200]>
+2024-10-01 15:33:41,752 - instabot version: 0.117.0 (api) - DEBUG - POST to endpoint: feed/reels_tray/ returned response: <Response [200]>
+2024-10-01 15:33:41,754 - instabot version: 0.117.0 (api) - INFO - Logged-in successfully as 'iamharsh_kumar'!
+2024-10-01 15:33:41,754 - instabot version: 0.117.0 (bot_checkpoint) - DEBUG - Loading Checkpoint file from: /home/harshkumar/Python/config/iamharsh_kumar.checkpoint
+2024-10-01 15:33:42,211 - instabot version: 0.117.0 (api) - DEBUG - GET to endpoint: media/DAdeXExS7sv/info/ returned response: <Response [400]>
+2024-10-01 15:33:42,211 - instabot version: 0.117.0 (api) - DEBUG - Responsecode indicates error; response content: b'{"message":"Invalid media_id DAdeXExS7sv","status":"fail"}'
+2024-10-01 15:33:42,212 - instabot version: 0.117.0 (api) - ERROR - Request returns 400 error!
+2024-10-01 15:33:42,212 - instabot version: 0.117.0 (api) - INFO - Instagram's error message: Invalid media_id DAdeXExS7sv
+2024-10-01 15:33:42,212 - instabot version: 0.117.0 (api) - INFO - Instagram's error message: {}
+2024-10-01 15:33:42,212 - instabot version: 0.117.0 (bot_checkpoint) - DEBUG - Saving Checkpoint file to: /home/harshkumar/Python/config/iamharsh_kumar.checkpoint
+2024-10-01 15:33:42,212 - instabot version: 0.117.0 (bot) - INFO - Total requests: 33

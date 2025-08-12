@@ -1,0 +1,70 @@
+su asterisk
+make clean
+./configure --prefix=/usr --enable-openssl
+make
+sudo make install
+sudo systemctl restart asterisk
+asterisk -rx "module show like srtp"
+asterisk -rvv
+cd /etc/asterisk/
+make clean
+./configure
+ls asterisk.conf 
+locat ts_deploy.sh
+locate ts_deploy.sh
+sudo yum install libsrtp libsrtp-devel
+cat /etc/os-release 
+cd /etc/yum.repos.d/
+mv CentOS-Base.repo old_CentOS-Base.repo 
+vim CentOS-Base.repo 
+su asterisk
+cd exotel_deployment/secureasterisk/asterisk-1.8.32.3/
+./configure 
+make menuselect
+make 
+make install
+asterisk -rx 'module show like srtp'
+asterisk -rx 'module reload'
+asterisk -rx 'module show like srtp'
+asterisk -gvvvvvr
+ldd /usr/lib/asterisk/modules/res_srtp.so 
+cd /usr/lib
+ls -ltrh | grep libsrp
+locate libsrtp.so
+updatedb
+locate libsrtp.so
+cd lib
+cd lib64
+cd /lib64
+ln -s /usr/lib/libsrtp.so.1 libsrtp.so
+ls -lrth lib*
+ls -lrth libsrtp.so
+asterisk -rx 'module load'
+asterisk -rx 'module reload'
+asterisk -rx 'module load libsrtp'
+asterisk -rx 'module load libsrtp.so'
+asterisk -rx 'module show like srtp'
+asterisk -gvvvvv
+asterisk -gvvvvvr
+ls /usr/lib/asterisk/modules/res_srtp.so
+ls -lrth /usr/lib/asterisk/modules/res_srtp.so
+ldd /usr/lib/asterisk/modules/res_srtp.so
+ls -lrthlibsrtp.so
+ls -lrth libsrtp.so
+vim /etc/asterisk/modules.conf
+ls /usr/lib/asterisk/modules/res_srtp.so
+vim /etc/asterisk/modules.conf
+asterisk -gvvvvvr
+sudo systemctl restart asterisk
+asterisk -gvvvvvr
+ls /usr/local/libsrtp/lib/libsrtp.so.1
+vim /etc/ld.so.conf.d/libsrtp.conf
+asterisk -gvvvvvr
+ldd /usr/lib/asterisk/modules/res_srtp.so
+ls -lrth /usr/lib/asterisk/modules/res_srtp.so 
+ldd /usr/lib/asterisk/modules/res_srtp.so
+ln -s /usr/lib/libsrtp.so.1 libsrtp.so 
+ldd /usr/lib/asterisk/modules/res_srtp.so 
+ln -s /usr/lib/libsrtp.so.1 libsrtp.so.1
+ldd /usr/lib/asterisk/modules/res_srtp.so 
+asterisk -gvvvvvvr

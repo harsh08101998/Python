@@ -1,0 +1,160 @@
+--------------------------------------- user_disposition_data (agent data) ------------------------------------------ 
+
+-[ RECORD 1 ]------------------------------
+archive_id          : 1
+id                  : d425-68342e3b-user-disp-h-0
+call_id             : d425-68342e3b-vcall-0
+call_leg_id         : d425-68342e3b-out-call-leg-softphone11007
+date_added          : 2025-05-27 09:14:09.335000
+db_date             : 2025-05-27 09:14:57.075115
+user_disposition_time: 2025-05-27 09:14:15.800000
+transfer_time       : None
+transfer_to         : None
+disposition_details : None
+disposition_class   : None
+disposition_code    : None
+user_id             : new_add
+session_id          : d425-68342e3b-ses-new_add-rEFddU3AXotAPRRCS8pv1G2zfDNsiUDLatSGQSgSUGPlBmpAPAUyFHPmoRqOUGYDu6wExjsA1XYGqbws58S22MqxNFVAAlSnFZbhiBxP0zwvy4TG6gSy-13
+user_crt_object_id  : new_add-27fdf6a6-ad89-4d9a-9e60-66cbfe0e5037-uce-87654567@2
+wrap_time           : 0
+talk_time           : 0
+working             : True
+campaign_team_id    : None
+disposed_by_crm     : False
+agent_queue_id      : None
+auto_call_on_time   : 6373
+auto_call_off_time  : 0
+user_connected_time : None
+user_disconnected_time: 2025-05-27 09:14:15.800000
+campaign_id         : 2
+association_type    : manualdial.association
+request_id          : d425-68342e3b-res-req-0
+preview_start_time  : None
+preview_duration    : None
+customer_hold_time  : 0
+hold_time           : 0
+additional_parameters: None
+notes               : None
+all_group_ids       : None
+association_removed_time: 2025-05-27 09:14:15.800000
+actual_channel      : None
+call_context_id     : None
+call_context_name   : None
+phone               : None
+direct_group_details: None
+
+-------------------------------------------- Agent cm_cdr_history data  ------------------------------------------------------------------------ 
+
+-[ RECORD 1 ]------------------------------
+call_leg_id         : d425-68342e3b-out-call-leg-softphone11007
+call_context_id     : 2
+voice_resource_id   : 1
+entity_name         : 901
+src_phone           : 876545678
+dst_phone           : 87654567
+dialled_phone       : 87654567
+vr_call_leg_id      : asterisk-callleg-1-originating-1040
+properties          : SRC_PHONE=876545678
+techSpecificId=4a020f9c246f0ee90b5138c62471ecd0@dynamic
+MEDIA_Ring=180
+hangupCauseTemplateId=1
+which.side.hungup=us
+hungup.by.action=false
+actual.channel=SIP/901-00000030
+voice.resource.initialization.timestamp=Tue May 27 09:14:09 UTC 2025
+MEDIA_INFO_RTP_SRC_PORT=17082
+MEDIA_USER_AGENT=Linphone-Desktop/5.2.6 (EXO-ABM-153) osx/15.5 Qt/5.15.2 LinphoneSDK/5.3.72
+internal.hangup.reason=hangup.call.server.event
+hangup.time=2025-05-27 09:14:15.779
+hangup.properties={hangup.prop.event.default.reason=Call hangup by provider with cause code:603}
+actual_channel      : SIP/901-00000030
+hangup_cause        : number.failure
+hangup_cause_code   : 603
+setup_time_out      : 15000
+ring_time_out       : 30000
+setup_time          : 834
+ring_time           : 5522
+talk_time           : 0
+start_time          : 2025-05-27 09:14:09.427000
+end_time            : 2025-05-27 09:14:15.779000
+voice_resource_initialization_time: 2025-05-27 09:14:09.426000
+tech_specific_id    : None
+which_side_hungup   : us
+hangup_cause_template_id: 1
+internal_hangup_reason: hangup.call.server.event
+hangup_properties   : {"hangup.prop.event.default.reason":"Call hangup by provider with cause code:603"}
+
+-------------------------------------------- call_history_data (customer data)  ------------------------------------------------------------------------ 
+
+-[ RECORD 1 ]------------------------------
+call_id             : d425-68342e3b-vcall-0
+call_leg_id         : None
+contact_center_id   : 1
+process_id          : 1
+campaign_id         : 2
+phone               : 876545678
+crt_object_id       : d425-68342e3b-vce-0
+customer_id         : -1
+lead_id             : None
+dialing_comments    : ["Party.did.not.answer","new_add"]
+is_outbound         : True
+call_type           : outbound.manual.dial
+system_disposition  : ATTEMPT_FAILED
+date_added          : 2025-05-27 09:14:09.287000
+db_date             : 2025-05-27 09:14:57.075115
+call_result         : FAILURE
+hangup_cause        : None
+hangup_cause_description: None
+hangup_cause_code   : None
+hangup_first        : True
+hangup_on_hold      : False
+call_originate_time : None
+call_end_time       : 2025-05-27 09:14:15.844000
+setup_time          : 0
+ringing_time        : 0
+ivr_time            : 0
+talk_time           : 0
+hold_time           : 0
+recording_file_url  : None
+nodeflow_id         : d425-68342e3b-nf-1
+actual_channel      : None
+dtmf_info           : None
+column_1            : None
+value_1             : None
+column_2            : None
+value_2             : None
+column_3            : None
+value_3             : None
+archive_id          : 1
+connection_state    : None
+connection_state_data: None
+customer_source     : None
+filter_source       : None
+filter_source_data  : None
+is_test_call        : False
+num_attempts        : 0
+hangup_details      : SYSTEM_MEDIA
+related_crt_object_id: None
+nodeflow_meta_data  : None
+dialed_call_details : {}
+crm_url             : None
+ringing_start_time  : None
+src_phone           : NODID
+dst_phone           : 876545678
+dialled_phone       : 876545678
+customer_data       : {}
+vq_request_id       : None
+lead_name           : None
+ucc_customer_id     : None
+filter_group_source : None
+display_phone       : 876545678
+unique_identifier   : None
+callback_id         : None
+inbound_call_failure_stage: None
+transfer_type       : None
+hangup_cause_template_id: None
+recording_file_failure_code: None
+
+-------------------------------------------- Customer cm_cdr_history data  ------------------------------------------------------------------------ 
+
+Data not present in cm_cdr_history for customer leg

@@ -1,0 +1,201 @@
+------------ Agent: user_disposition_history ------------
+
+-[ RECORD 1 ]------------------------------
+archive_id               : 3
+id                       : d425-68342e3b-user-disp-h-2
+call_id                  : d425-68342e3b-vcall-2
+call_leg_id              : d425-68342e3b-out-call-leg-softphone11009
+date_added               : 2025-05-27 09:16:05.133000
+db_date                  : 2025-05-27 09:17:57.106516
+user_disposition_time    : 2025-05-27 09:17:12.548000
+transfer_time            : None
+transfer_to              : None
+disposition_details      : None
+disposition_class        : campaign.system.disposition
+disposition_code         : wrap.timeout
+user_id                  : new_add
+session_id               : d425-68342e3b-ses-new_add-rEFddU3AXotAPRRCS8pv1G2zfDNsiUDLatSGQSgSUGPlBmpAPAUyFHPmoRqOUGYDu6wExjsA1XYGqbws58S22MqxNFVAAlSnFZbhiBxP0zwvy4TG6gSy-13
+user_crt_object_id       : new_add-27fdf6a6-ad89-4d9a-9e60-66cbfe0e5037-uce-87654567@2
+wrap_time                : 30579
+talk_time                : 12842
+working                  : True
+campaign_team_id         : None
+disposed_by_crm          : False
+agent_queue_id           : None
+auto_call_on_time        : 67381
+auto_call_off_time       : 0
+user_connected_time      : 2025-05-27 09:16:06.901000
+user_disconnected_time   : 2025-05-27 09:16:41.969000
+campaign_id              : 2
+association_type         : manualdial.association
+request_id               : d425-68342e3b-res-req-2
+preview_start_time       : None
+preview_duration         : None
+customer_hold_time       : 0
+hold_time                : 0
+additional_parameters    : None
+notes                    : None
+all_group_ids            : None
+association_removed_time : 2025-05-27 09:17:12.548000
+actual_channel           : SIP/901-00000032
+call_context_id          : 2
+call_context_name        : softphone1
+phone                    : 87654567
+direct_group_details     : None
+
+------------ Agent: cm_cdr_history ------------
+
+-[ RECORD 1 ]------------------------------
+call_leg_id              : d425-68342e3b-out-call-leg-softphone11009
+call_context_id          : 2
+voice_resource_id        : 1
+entity_name              : 901
+src_phone                : 8570027091
+dst_phone                : 87654567
+dialled_phone            : 87654567
+vr_call_leg_id           : asterisk-callleg-1-originating-1044
+properties               : MEDIA_INFO_RTP_DEST_HOST=10.10.10.194
+voice.resource.initialization.timestamp=Tue May 27 09:16:05 UTC 2025
+SRC_PHONE=8570027091
+MEDIA_INFO_RTP_DEST_PORT=61055
+tech.specific.id=2eac7bac3c22d56834227b6541cc8d9d@dynamic
+MEDIA_Ring=180
+MEDIA_INFO_RTP_SRC_PORT=13714
+MEDIA_USER_AGENT=Linphone-Desktop/5.2.6 (EXO-ABM-153) osx/15.5 Qt/5.15.2 LinphoneSDK/5.3.72
+internal.hangup.reason=
+MEDIA_INFO_RTP_CODECS_JOINT_CAPABILITY=(alaw|ulaw)
+actual.channel=SIP/901-00000032
+hangup.properties={}
+actual_channel           : SIP/901-00000032
+hangup_cause             : normal.clearing
+hangup_cause_code        : 0
+setup_time_out           : 15000
+ring_time_out            : 30000
+setup_time               : 224
+ring_time                : 1482
+talk_time                : 35093
+start_time               : 2025-05-27 09:16:05.167000
+end_time                 : 2025-05-27 09:16:41.966000
+voice_resource_initialization_time: 2025-05-27 09:16:05.165000
+tech_specific_id         : 2eac7bac3c22d56834227b6541cc8d9d@dynamic
+which_side_hungup        : None
+hangup_cause_template_id : None
+internal_hangup_reason   : 
+hangup_properties        : {}
+
+------------ Customer: call_history ------------
+
+-[ RECORD 1 ]------------------------------
+call_id                  : d425-68342e3b-vcall-2
+call_leg_id              : d425-68342e3b-out-call-leg-null1011
+contact_center_id        : 1
+process_id               : 1
+campaign_id              : 2
+phone                    : 8570027091
+crt_object_id            : d425-68342e3b-vce-2
+customer_id              : -1
+lead_id                  : None
+dialing_comments         : None
+is_outbound              : True
+call_type                : outbound.manual.dial
+system_disposition       : CONNECTED
+date_added               : 2025-05-27 09:16:05.120000
+db_date                  : 2025-05-27 09:17:57.106516
+call_result              : SUCCESS
+hangup_cause             : normal.clearing
+hangup_cause_description : OK
+hangup_cause_code        : 200
+hangup_first             : False
+hangup_on_hold           : False
+call_originate_time      : 2025-05-27 09:16:06.902000
+call_end_time            : 2025-05-27 09:16:41.974000
+setup_time               : 227
+ringing_time             : 21995
+ivr_time                 : 3
+talk_time                : 12844
+hold_time                : 0
+recording_file_url       : dacx://1@com-drishti-dacx-core-callmanager-asterisk-IAsteriskComponent:8008/dacx/var/ameyo/dacxdata/voicelogs/DefaultCC/2025-05-27/new_add/8570027091_new_add_2025-05-27-09-16-05
+nodeflow_id              : d425-68342e3b-nf-7
+actual_channel           : SIP/901-00000033
+dtmf_info                : None
+column_1                 : None
+value_1                  : None
+column_2                 : None
+value_2                  : None
+column_3                 : None
+value_3                  : None
+archive_id               : 3
+connection_state         : None
+connection_state_data    : None
+customer_source          : None
+filter_source            : None
+filter_source_data       : None
+is_test_call             : False
+num_attempts             : 0
+hangup_details           : AGENT_HANGUP_UI
+related_crt_object_id    : None
+nodeflow_meta_data       : None
+dialed_call_details      : {"d425-68342e3b-out-call-leg-null1011":{"8570027091":"connected"}}
+crm_url                  : 
+ringing_start_time       : 2025-05-27 09:16:07.129000
+src_phone                : NODID
+dst_phone                : 8570027091
+dialled_phone            : 8570027091
+customer_data            : {}
+vq_request_id            : None
+lead_name                : None
+ucc_customer_id          : None
+filter_group_source      : None
+display_phone            : 8570027091
+unique_identifier        : None
+callback_id              : None
+inbound_call_failure_stage: None
+transfer_type            : None
+hangup_cause_template_id : 1
+recording_file_failure_code: 
+
+------------ Customer: cm_cdr_history ------------
+
+-[ RECORD 1 ]------------------------------
+call_leg_id              : d425-68342e3b-out-call-leg-null1011
+call_context_id          : 2
+voice_resource_id        : 1
+entity_name              : 901
+src_phone                : NODID
+dst_phone                : 8570027091
+dialled_phone            : 8570027091
+vr_call_leg_id           : asterisk-callleg-1-originating-1048
+properties               : MEDIA_INFO_RTP_DEST_HOST=10.10.10.194
+SRC_PHONE=NODID
+techSpecificId=1fd166424db098d15e67cab04d421f12@dynamic
+tech.specific.id=1fd166424db098d15e67cab04d421f12@dynamic
+MEDIA_Ring=180
+hangupCauseTemplateId=1
+which.side.hungup=us
+hungup.by.action=true
+actual.channel=SIP/901-00000033
+voice.resource.initialization.timestamp=Tue May 27 09:16:06 UTC 2025
+MEDIA_INFO_RTP_DEST_PORT=56719
+MEDIA_INFO_RTP_SRC_PORT=12782
+MEDIA_USER_AGENT=Linphone-Desktop/5.2.6 (EXO-ABM-153) osx/15.5 Qt/5.15.2 LinphoneSDK/5.3.72
+internal.hangup.reason=hangup.call.server.event
+MEDIA_INFO_RTP_CODECS_JOINT_CAPABILITY=(alaw|ulaw)
+hangup.time=2025-05-27 09:16:41.973
+hangup.properties={hangup.prop.event.value=HANGUP, hangup.prop.event.reason=Associated callLeg/user has hangup the call., hangup.prop.event.handler=VoiceCampaign.handleCallLegStateChanged, hangup.prop.event.type=callLegEvent}
+actual_channel           : SIP/901-00000033
+hangup_cause             : normal.clearing
+hangup_cause_code        : 200
+setup_time_out           : 15000
+ring_time_out            : 30000
+setup_time               : 227
+ring_time                : 21995
+talk_time                : 12850
+start_time               : 2025-05-27 09:16:06.902000
+end_time                 : 2025-05-27 09:16:41.973000
+voice_resource_initialization_time: 2025-05-27 09:16:06.898000
+tech_specific_id         : 1fd166424db098d15e67cab04d421f12@dynamic
+which_side_hungup        : us
+hangup_cause_template_id : 1
+internal_hangup_reason   : hangup.call.server.event
+hangup_properties        : {"hangup.prop.event.value":"HANGUP","hangup.prop.event.reason":"Associated callLeg/user has hangup the call.","hangup.prop.event.handler":"VoiceCampaign.handleCallLegStateChanged","hangup.prop.event.type":"callLegEvent"}
+
