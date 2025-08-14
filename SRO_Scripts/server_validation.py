@@ -2,7 +2,7 @@
 import argparse
 import paramiko
 import os
-
+import re
 # python3.5 okk.py --ssh-host 080-33.exotel.in --ssh-user asterisk --ssh-key centos.pem --ssh-port 22000
 
 def print_note(note):
@@ -365,6 +365,31 @@ def task_check_rsyslog_mum1(args, command_statuses):
     else:
         print("❌ Mumbai rsyslog server entry not found in logs.conf")
         command_statuses.append((cmd, False, "Mumbai rsyslog server entry not found in logs.conf"))
+
+def task_check_manager_interface_actionid(args, command_statuses):
+    print_note('Check for single "aid = headers.delete(:ActionID)" in manager_interface.rb')
+    cmd = "grep 'ActionID' /opt/jruby-1.7.1/lib/ruby/gems/shared/gems/adhearsion-1.2.6/lib/adhearsion/voip/asterisk/manager_interface.rb | grep headers.delete"
+    success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
+    count = out.count("aid = headers.delete(:ActionID)")
+    if count == 1:
+        print("✅ Only one entry of 'aid = headers.delete(:ActionID)' found")
+        command_statuses.append((cmd, True, "Only one entry of 'aid = headers.delete(:ActionID)' found"))
+    else:
+        print(f"❌ {count} entries of 'aid = headers.delete(:ActionID)' found (should be 1)")
+        print(out)
+        command_statuses.append((cmd, False, f"{count} entries of 'aid = headers.delete(:ActionID)' found (should be 1)"))
+
+def task_check_nproc_value(args, command_statuses):
+    print_note("Check nproc value in /etc/security/limits.d/20-nproc.conf (should be 20480)")
+    cmd = "grep -E '^[^#]*[0-9]+$' /etc/security/limits.d/20-nproc.conf"
+    success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
+    if "20480" in out:
+        print("✅ nproc value is set to 20480")
+        command_statuses.append((cmd, True, "nproc value is set to 20480"))
+    else:
+        print("❌ nproc value is NOT set to 20480")
+        print(out)
+        command_statuses.append((cmd, False, "nproc value is NOT set to 20480"))
 
 def task_check_ahn_timezone(args, command_statuses):
     print_note("Check Ahn time zone in Ahn logs (should be +05:30 or +0530)")
@@ -766,6 +791,8 @@ Commit it to code-base with new branch and make pull request to voice dri""")
 
     task_check_rsyslog_mum1(args, command_statuses)
     task_check_ahn_timezone(args, command_statuses)
+    task_check_nproc_value(args, command_statuses)
+    task_check_manager_interface_actionid(args, command_statuses)
     task1_check_local_http_ports(args, command_statuses)
     task_verify_route_switcher_config(args, command_statuses)
     task_sillyio_config_verification(args, command_statuses)

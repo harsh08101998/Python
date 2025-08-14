@@ -1,0 +1,438 @@
+TRUE,Steps/Details,
+Name,Person who is checking/validating server,
+Sanity check start time,,
+Server live time,"When we make the server active in twilix.Server table.
+
+Once the server is active, we will be making outbound calls from the same",
+Google Chat Thread,Thread for contextual information (discussion between SRO & Voice),
+Deploy all services from master - check latest version,,
+server state,server state to be dead before sanity,
+Basic checks,"- check hostname is proper (command hostname)
+- check if timezone is IST (command date)
+
+
+Hostname is used by AHN/Amix/Eventshipper while creating AMI events and 
+shipping them to asteriskStoreDB. This has to be correct on the server end, so that
+we only ship events with the appropriate server name ",
+IP validation,date,
+span mapping,"Compare the span properties in sillyio.yml with data in Pri table (TwilixDb-SmallTable):
+
+dB query (in twilix-smalltable-replica):
+SELECT span, pilot FROM Pri WHERE card IN (SELECT id FROM Card WHERE server IN (SELECT id FROM Server WHERE code = ""080_24"")); #Change code as necessary.
+
+or 
+ SELECT span, pilot FROM Pri WHERE card IN (SELECT id FROM Card WHERE server IN (SELECT id FROM Server WHERE code = ""080_31"")) order by span asc;  
+
+On telephone server:
+sed -n '64,79 p' /home/asterisk/adhearsion/adhearsion/sillyio/components/sillyio/sillyio.yml | awk '{print $1, $12}'
+
+new:
+-------
+less /home/asterisk/adhearsion/adhearsion/sillyio/components/sillyio/sillyio.yml | grep ob_channel_threshold | awk '{ print $1, $12}'
+
+with operator: 
+less /home/asterisk/adhearsion/adhearsion/sillyio/components/sillyio/sillyio.yml | grep ob_channel_threshold | awk '{ print $1, $12, $15}'
+
+
+Make sure the span and the pilot numbers match.
+
+
+In twilix small table, we store the span and pilot connected to the span. When an incoming call lands on a server, the appropriate span mappings on the server in sillyio.yml are 
+used to determine the operator and other information. If this span mapping is wrong bad things can happen. [add more info here]",
+Recording Directory Permission,"ll /var/log/exotel/recordings/sgp1/
+ll /var/log/exotel/recordings/mum1/
+ll /var/log/exotel/recordings/causix_recordings/
+
+permissom to  be 776",
+MySQL status,"sudo service mysqld status
+
+Mysqld is used by Amix/Eventshipper to add AMI/CDR/uidstampmap events to the table for shipping
+them later to the common asteriskStoreDB",
+Beanstalkd status,"sudo status beanstalkd
+
+Beanstalkd is used by recogenix-ts for enqueing recordings for further processing. 
+Once a recording is enqued, the recording is then picked up by recogenix-ts and shipped to a temp bucket on S3. Recogenix-cloud picks up recordings from the temp bucket and ships it to the correct customer bucket. 
+
+For centos7 servers: 
+sudo systemctl status beanstalkd or sudo status beanstalkd",
+Rsyslog status,"sudo service rsyslog status
+
+rsyslog is a very popular service for shipping server related metrics. We use it to send various metrics from the telephone servers. Metrics from all TS stamps is sent to sgp1 cluster after ts infra merger ",
+Asterisk status,sudo service asterisk status,
+Ahn check,"sudo status ahn
+run the same command at one min interval make sure that process id is not changed
+
+AHN is our inhouse software for controlling the calls. AHN sends commands to asterisk from our cloud layer to control and direct calls. ",
+Amix status,"sudo status amix
+cSame as ahn
+- check whether amix is able to write things in DB
+
+
+Amix is also an inhouse software that picks up events from the AMI port and posts it to the DB.",
+EventShipper status,sudo status eventshipper ,
+Firefoot-ts,"
+sudo service firefoot-ts status",
+Connectivity to twilix-internal,"curl 'https://twilix.exotel.com/v1/accounts'
+curl -k 'https://internal.twilix.exotel.com/v1/accounts' 
+curl 'https://twilix.mum1.exotel.com/v1/accounts'
+curl -k 'https://internal.twilix.mum1.exotel.com/v1/accounts'
+Above two commands should give some response.
+
+
+Twilix and internal.twilix to pick up details like the voice-flow that the particular call has to connect to from both the stamps. ",
+Connectivity to appengine,"curl 'https://appengine.exotel.com/auth/login'
+curl 'https://appengine.mum1.exotel.com/auth/login'
+
+make sure you got some response from both the stamps and not error.
+
+Appengine deals with executing the voice-flow, maintaining the number free/busy as well as updating the status of the call at the end of the call,",
+irqbalance status,"sudo service irqbalance status
+
+irqbalance is a service which maintains the interrupts across the CPU cores. If one CPU core is bombarded with a lot of interrupts, this results in degraded CPU utilization. ",
+fail2ban status,"sudo service fail2ban status
+
+If it is stopped start it - sudo service fail2ban start
+
+Verify:
+Status
+|- Number of jail:      4
+`- Jail list:   asterisk-tcp, asterisk-udp, ssh, vsftpd
+
+
+fail2ban is a service which checks for erroneous/malicious connections to ports on the servers. This allows servers to put malicious IP's into a jail so that the ports aren't flooded with requests. ",
+Squid config check,"Check squid conf sudo less /etc/squid/squid.conf and in that file ipX of tcp_outgoing_address should same as emX.
+Here X means ethernet interface starts with em. it can be from 1 to 4
+- tcp_outgoing_address should have all available ILLs configured
+
+command:  
+sudo grep tcp_outgoing_address /etc/squid/squid.conf
+
+
+curl -v http://localhost:5000/healthcheck && curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUX2lwMg==' --request GET --proxy 'http://127.0.0.1:23451' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c' && curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23452' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c' && curl  --request GET --proxy 'http://127.0.0.1:23432' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c' && curl  --request GET --proxy 'http://127.0.0.1:23433' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c' && sudo service haproxy status && sudo service squid status && cat /etc/haproxy/haproxy.cfg
+
+
+",
+Squid status,"1)sudo service squid status
+
+2)squid -v
+check version expected version
+Squid Cache: Version 3.5.28
+Service Name: squid
+
+3)run belw command to verify- squid should only show ILL ips - no ips should be shown
+
+echo "" "";squid -v | grep -i ""Version"";echo """";haproxy -v | grep -i ""Version"";echo """";cat adhearsion/adhearsion/sillyio/components/sillyio/sillyio.yml | grep -i ""proxy_url\|http://localhost"";echo """";cat /etc/haproxy/haproxy.cfg | grep -i ""check fall"";echo """";sudo cat /etc/squid/squid.conf | grep -i ""acl ip\|tcp_outgoing_ad\|http_port"";
+
+e.g output:
+
+Squid Cache: Version 3.5.28
+
+HAProxy version 2.4.2-553dee3 2021/07/07 - https://haproxy.org/
+
+proxy_url : 
+- ""http://localhost:23432""
+
+    server local_squid_ip1        localhost:23451        check fall 2 rise 3 inter 4000 weight 100
+    server local_squid_ip2        localhost:23452        check fall 2 rise 3 inter 5000 weight 100
+    server local_squid_ip3        localhost:23453        check fall 2 rise 3 inter 6000 weight 100
+    server 0495_4_em2        182.71.48.40:23451        check fall 1 rise 6 inter 11000 backup
+    server 040_1_em2        14.143.76.154:23452        check fall 1 rise 6 inter 12000 backup
+    server 0731_1_em1        121.242.97.178:23453        check fall 1 rise 6 inter 13000 backup
+
+acl ip1 myport 23451
+acl ip2 myport 23452
+acl ip3 myport 23453
+tcp_outgoing_address 115.112.63.87 ip1
+tcp_outgoing_address 182.75.51.104 ip2
+tcp_outgoing_address 118.185.51.231 ip3
+http_port 23451
+http_port 23452
+http_port 23453
+
+
+3 ILL THEN:
+
+
+
+{
+""status"": ""Working""
+}{
+""status"": ""Working""
+}{
+""status"": ""Working""
+}{
+""status"": ""Working""
+}{
+""status"": ""Working""",
+HAProxy status,"1)sudo service haproxy status
+2)haproxy -v (check version of haproxy)
+expected result:
+ haproxy -v
+HAProxy version 2.4.2-553dee3 2021/07/07 - https://haproxy.org/
+
+3)Run below curl command to verify al ports are reachable
+2 ill use below:
+curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23451' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c' && curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23452' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c' && curl  --request GET --proxy 'http://127.0.0.1:23432' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c' && curl  --request GET --proxy 'http://127.0.0.1:23433' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'
+
+ouput: all ports should be connected
+
+e.g {
+""status"": ""Working""
+}{
+""status"": ""Working""
+}{
+""status"": ""Working""
+}{
+""status"": ""Working""
+
+
+3 ILL USE BELOW:
+
+curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23451' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c' && curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23452' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c' && curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23453' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c' && curl --request GET --proxy 'http://127.0.0.1:23432' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c' && curl --request GET --proxy 'http://127.0.0.1:23433' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'  
+
+{
+""status"": ""Working""
+}{
+""status"": ""Working""
+}{
+""status"": ""Working""
+}{
+""status"": ""Working""
+}{
+""status"": ""Working""
+
+vslidat elogs
+cat /etc/haproxy/haproxy.cfg
+",
+Ntpd status,"sudo service ntpd status
+
+ntpstat
+synchronised to NTP server (51.158.186.98) at stratum 3
+   time correct to within 117 ms
+   polling server every 1024 s",
+PHP.ini Time Zone check,"cat /etc/php.ini | grep -i date.timezone
+
+Check whether timezone is configured properly and the line should be uncommented.
+date.timezone = ""Asia/Calcutta""",
+check HAProxy & Squid logs,,
+sudo tail -f /var/log/squid/access.log,Should not be empty,
+sudo tail -f /var/log/squid/cache.log,Should not be empty,
+sudo tail -f /var/log/haproxy/admin.log,Should not be empty,
+Logrotate for below services(/etc/logrotate.d/),,
+Asterisk,Should have both asterisk and master.csv config,
+beanstalkd,,
+adhearsion,Should be size based,
+amix,,
+fail2ban,Should be size based,
+squid,Should be size based,
+telegraf,,
+vsftpd,,
+Firefoot-ts,Should be size based,
+eventshipper,,
+rsyslog-errors,Should be size based,
+haproxy,,
+route-switcher,,
+Fangorn,,
+"The following rsyslog configs should be present:
+    - haproxy.conf  
+    - impstats.conf  
+    - logs.conf  
+    - metrics.conf","run the below command to list all the rsyslog configs: 
+ls -l /etc/rsyslog.d/",
+Test call,Make a test call for the pilots in the server,
+CDR entry,"You should be seeing the above call that you made above step. It should be present in two places.
+1. in /var/log/asterisk/cdr-csv/Master.csv file
+2. in MySQL db. You can execute the below query to check the row. Make sure that it has proper value 
+callsid, from and to number, ...
+- Connect  to exotelcalls database. mysql> use exotelcallsmy
+- mysql> select * from cdr where uniqueid = '<uniqueid from prev step>';",
+Uidstampmap entry,"- Connect  to exotelcalls database. mysql> use exotelcalls
+- mysql> select * from uidstampmap where uniqueid = '<uniqueid from prev step>';
+make sure that events are there.",
+AMI entry,"- Connect  to exotelcalls database. mysql> use exotelcalls
+- mysql> select * from amievent where uniqueid = '<uniqueid from prev step>';
+make sure that events are there.",
+Recording Upload,"- Make a call or take any IB call which has recording and make sure that recording is available in S3.
+- You can get the S3 location from twilix Call entry.
+(select * from `Call` where Sid = '<callsid of call>';)
+
+
+If you are able to see the recording file added to the appropriate tenant bucket in respective stamp, then that means the entire recording pipeline is working. ",
+Recording local file deletion,"Make sure that file from local telephone server is deleted after upload. Location is
+ll /var/log/exotel/recordings/sgp1 or mum1
+
+If this is not happening, you can check the permissions of the folder and verify they aren't mismatched.",
+Make OB call,"Use API to make call. Make sure that call is maturing and you are getting response. Ofcourse you have
+to make the server active to intiate OB call via that server.",
+Billng,"Check the pricing details in twilix make sure that price is updated in respective stamp. IF not some issue in call processing 
+pipeline. Debug",
+Inbox,"After call gets over from that server, it should appear in inbox.",
+Check AHN log after making live,"tail -f /var/log/exotel/adhearsion/adhearsion.log | grep -i ""ERROR\|Exception"" make sure that nothing abnormal",
+check “manager_interface.rb”,"Run the below command:
+grep ""ActionID"" /opt/jruby-1.7.1/lib/ruby/gems/shared/gems/adhearsion-1.2.6/lib/adhearsion/voip/asterisk/manager_interface.rb|grep headers.delete
+If you find two lines of “aid = headers.delete(:ActionID)”, then remove one such line in /opt/jruby-1.7.1/lib/
+ruby/gems/shared/gems/adhearsion-1.2.6/lib/adhearsion/voip/asterisk/manager_interface.rb and make 
+that server as inactive and restart the ahn, then make the server as active.",
+Updating the master slave in IAX.conf,https://sites.google.com/a/exotel.in/tech/how-conference-works?pli=1,
+Adhearsion Time Zone,"Check Ahn time zone in Ahn logs. It should be +05:30
+command: cat /var/log/exotel/ahn_health/adhearsion_dates",
+"Make sure All the IP's whitelisted
+ in neccessary SG's","Try to run below commands from new telephoneserver and verify that its getting connected.
+telnet rsyslog.mum1.exotel.in 9800
+telnet kafka-1.internal.exotel.in 9092",
+ILLs whitelisted in cloud SGs,"Check ts-ip-whitelister cron output after adding necessary entries in 'Network' table in twilix DB
+Ensure that the entries in Network table are CIDR blocks instead of one entry per IP.
+
+In-case of telephonix it will be one single IP and no need to add CIDR block, just add public IP
+
+https://ap-southeast-1.console.aws.amazon.com/ec2/v2/home?region=ap-southeast-1#SecurityGroups:search=sg-6109c019;sort=groupId
+
+- rsyslog SG
+-kafka-1 or kafka-2 or kafka-3
+- trident-Q SG -go into loadbalancer and do it
+- common-Q SG (recogenix-cloud)
+
+http-https-telephone-servers-1, http-https-telephone-servers-2",
+Verify that Adhearsion correct set of credentials with respect to the server,"grep ""default_sid"" /home/asterisk/adhearsion/adhearsion/sillyio/components/sillyio/sillyio.yml
+ - it should start with defaultts022<code>*
+
+if you found no creds and wrong credentials, Please generate it and source it in DB exotel_code/twilix/scripts/generateTSCreds.php
+E.G: php generateTSCreds.php 0229
+
+
+Commit it to code-base with new branch and make pull request to voice dri",
+Nproc value,"Make sure that the /etc/security/limits.d/90-nproc.conf(cen tos-6) is having value like other server.
+20480
+
+new server has 20-nproc.conf(cent os -7)- cat /etc/security/limits.d/20-nproc.conf
+
+prevent malicious denial of service attacks",
+sillyio config verification,"- recording_url_base_path should be proper: https://s3-ap-southeast-1.amazonaws.com/exotelrecordings/
+cmd: grep s3_recording_bucket /home/asterisk/adhearsion/adhearsion/sillyio/components/sillyio/sillyio.yml
+
+- server should be twilix.Server.code:
+query: select * from Server where code=""<host name>"" limit 1\G
+
+Run: grep conference_master /home/asterisk/adhearsion/adhearsion/sillyio/components/sillyio/sillyio.yml
+- conference_master should be same for entire DC
+- It should be same for entire DC",
+log shipping,"Check logs for all services on doglump of mum1 cluster and ensure they are getting shipped
+- adhearsion
+- eventshipper
+- firefoot
+-legolas-ts
+
+
+check in server:
+ grep mum1 /etc/rsyslog.d/logs.conf
+  
+Expected output: It should show mumbai stamp rsyslog servers host entry
+                                              Target=""rsyslog.mum1.exotel.in""
+                                          Target=""rsyslog.mum1.exotel.in""
+                                         Target=""rsyslog.mum1.exotel.in""
+                                        Target=""rsyslog.mum1.exotel.in""
+",
+check whether cron service is running,sudo service crond status,
+legolas,sudo service legolas-ts status,
+causix status,"sudo status causix
+ sudo status causixenqueuer
+",
+verify gem list,"sudo /opt/jruby-1.7.1/bin/jruby -S gem list
+",
+Route-switcher,Exclude all non ILL interface and not up interface,
+IPtables,"Check IP tables and ensure the below rules are added
+1. All the Operator SBC rules are added for both SIP and Media 
+2. Ensure atleast these rules are present, particularly, we should not have wildcard character for SSH
+[asterisk@080-11 ~]$ sudo iptables -nvL
+Chain INPUT (policy DROP 7503K packets, 2120M bytes)
+ pkts bytes target     prot opt in     out     source               destination
+55609 2949K ACCEPT     tcp  --  *      *       155.248.248.40       0.0.0.0/0            tcp dpt:22000
+15114  753K fail2ban-vsftpd  tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            multiport dports 21,20,990,989,21
+  16M 2629M fail2ban-ssh  tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            multiport dports 22,22000
+ 610M  382G fail2ban-asterisk-udp  udp  --  *      *       0.0.0.0/0            0.0.0.0/0            multiport dports 5060,5061
+1281K  656M fail2ban-asterisk-tcp  tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            multiport dports 5060,5061
+15114  753K fail2ban-vsftpd  tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            multiport dports 21,20,990,989,21
+ 610M  382G fail2ban-asterisk-udp  udp  --  *      *       0.0.0.0/0            0.0.0.0/0            multiport dports 5060,5061
+1281K  656M fail2ban-asterisk-tcp  tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            multiport dports 5060,5061
+ 179M   39G ACCEPT     icmp --  *      *       0.0.0.0/0            0.0.0.0/0
+  84G   24T ACCEPT     all  --  lo     *       0.0.0.0/0            0.0.0.0/0
+ 177G   38T ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+ 147M 8809M ACCEPT     tcp  --  *      *       54.251.51.1          0.0.0.0/0
+ 144M 8646M ACCEPT     tcp  --  *      *       54.251.51.3          0.0.0.0/0
+    0     0 ACCEPT     tcp  --  *      *       52.74.5.190          0.0.0.0/0
+    0     0 ACCEPT     tcp  --  *      *       13.233.217.51        0.0.0.0/0
+ 121M 7284M ACCEPT     tcp  --  *      *       35.154.174.161       0.0.0.0/0
+   31  1336 ACCEPT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp dpt:23444
+ 2649  154K ACCEPT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp dpt:23451
+ 2687  156K ACCEPT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp dpt:23452
+ 1855  103K ACCEPT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp dpt:23453
+  785 46564 ACCEPT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp dpt:23454
+    0     0 ACCEPT     all  --  *      *       100.64.216.4         0.0.0.0/0
+    0     0 ACCEPT     all  --  *      *       100.64.216.5         0.0.0.0/0
+2828M  565G ACCEPT     all  --  *      *       192.168.20.12        0.0.0.0/0
+2833M  566G ACCEPT     all  --  *      *       192.168.20.9         0.0.0.0/0
+ 1595  595K ACCEPT     all  --  *      *       192.168.111.9        0.0.0.0/0
+",
+Prometheus process exporter,, https://build.corp.exotel.in:8080/job/prod-prometheus-process-exporter-deploy/
+Prometheus node exporter,,https://build.corp.exotel.in:8080/job/prod-prometheus-node-exporter-deploy/
+Prometheus Asterisk exporter,,"SG Stamp: https://build.corp.exotel.in:8080/job/prometheus-asterisk-exporter-deploy/ 
+MUM stamp: https://build-exointernal.mum1.exotel.in/job/prometheus-asterisk-exporter-deploy/"
+Beanstalkd File limit change,https://build.corp.exotel.in:8080/job/TS-Update-beanstalkd-File-Limit/,"check  if it is not there you have to run the build
+cat /etc/init/beanstalkd.conf | grep ""ulimit -n 4096""
+cat /etc/systemd/system/beanstalkd.service | grep ""LimitNOFILE=4096""
+sudo  cat /proc/`pidof beanstalkd`/limits  | grep 'Max open files'"
+Log uploader script,"https://build.corp.exotel.in:8080/job/ts_logs_uploader_deploy .
+Add the hostnames at the end to these two cron jobs https://build.corp.exotel.in:8080/job/ts_%20log_uploader_cron_even/ https://build.corp.exotel.in:8080/job/ts_logs_uploader_cron_odd/ 
+This is the cron job which uses the script deployed in step 3 to upload the logs. As the name suggests, add even number servers in the first job and odd ones in the second job. ",
+TCP recovery,https://exotel.atlassian.net/wiki/spaces/TET/pages/373457894/TCP+Connection+recovery+configuration,"check 
+sudo sysctl -p
+o/p net.ipv4.tcp_retries2 = 8"
+.etc/hosts,"Etc hosts entry should be looking like as below
+[asterisk@080-34 ~]$ cat /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+127.0.0.1 080-34.exotel.in
+# BEGIN ANSIBLE MANAGED BLOCK
+127.0.0.1       googlixq.exotel.in
+127.0.0.1       billixq.exotel.in
+# For Homeopathix
+54.251.34.4     googlixrealq.exotel.in
+54.251.34.4     billixrealq.exotel.in
+# END ANSIBLE MANAGED BLOCK
+52.220.31.189 nagios-server
+10.0.0.220 graphite.exotel.in
+192.168.89.9 jio1.sbc.exotel.com
+192.168.88.9 jio2.sbc.exotel.com
+192.168.111.9 airtel1.sbc.exotel.com
+192.168.112.9 airtel2.sbc.exotel.com
+192.168.113.9 airtel3.sbc.exotel.com
+192.168.114.9 airtel4.sbc.exotel.com
+192.168.20.9 airtel5.sbc.exotel.com
+",
+Add the active channel count script in any of the existing server get_active_numbers.sh and give executable permission,"check 
+[asterisk@080-13 ~]$ pwd
+/home/asterisk
+[asterisk@080-13 ~]$ ll get_active_numbers.sh
+-rwxr-xr-x 1 root asterisk 1137 Apr 26  2024 get_active_numbers.sh
+[asterisk@080-13 ~]$ 
+ensure script has executable permission",
+ENabling IP platform in the server,"check pstn.mum1.exotel.com peers are added in sip.conf and peers should be up 
+sudo asterisk -rx ""sip show peers""
+pstn.mum1.exotel.com is added in sillyio
+[asterisk@079-18 ~]$ cat adhearsion/adhearsion/sillyio/components/sillyio/sillyio.yml | grep -o ""pstn.mum1.exotel.com""
+pstn.mum1.exotel.com
+pstn.mum1.exotel.com
+pstn.mum1.exotel.com
+it should print three output with pstn.mum1.exotel.com",
+"Check in Prometheus config file, if the host name is added for ports
+1. 9100
+2. 9815
+3. 9256",,
+Add the active channel count script in any of the existing server get_active_numbers.sh and give executable permission,"get_active_numbers.sh
+
+If not present create the file and copy from other servers and mak it executable using the command: 
+chmod 755 <filename>",Present
+"curl --location 'https://exoteltechcom1m:7e18e48f7cd6747e2a412353506945dadb86272d@api.in.exotel.com/v1/Accounts/exoteltechcom1m/Calls/connect.json?From=09886885535&CallerId=07314852003&Url=http%3A%2F%2Fmy.exotel.com%2Fexoteltechcom1m%2Fexoml%2Fstart_voice%2F24727&__RequestedServerCode=0731_01&__IgnoreServerStatus=true' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--data-urlencode 'Record=true' \
+--data-urlencode 'StatusCallback=https://webhook.site/be5f0274-5eca-420e-86b4-aaddd47db162'",,Streaming Test

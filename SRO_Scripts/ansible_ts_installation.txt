@@ -1,0 +1,1116 @@
+
+  Telephone Server Setup Using Ansible
+
+OS Installation.
+DNS Record update in Route53
+TS Deployment through Jenkins Job.
+Twilix DB Entries.
+TS Sanity.
+
+
+
+
+
+
+This Document helps SRO to bring new TS to Production
+
+
+
+OS Installation:
+
+IDRAC Setup of Physical Servers
+
+When the iDRAC is mounted, the default password will be in the chassis of the server. Get the default password from the supply team .
+Open the iDRAC ip in the browser , enter the default password and change the password . Update the new password in the iDRAC excel sheet and in the trello card .
+CentOs Installation
+PreRequisites :
+1. Idrac is setup
+2. ILLs are connected
+3. Centos iso is present with you (Not necessary if installing from AWS iDRAC Machine)
+4. IPSheet and Idrac sheet present with you
+Note: The CentOS installation will be fast if you do it from AWS idrac machine else the setup might fail often when the network is interupted
+The OS installation takes approximately 20 -40 minutes . It depends on the speed of the network.
+
+IDRAC Security
+While bringing up a new idrac server , the following security settings must be checked in order to harden the iDRAC .
+1. Disable IPMI settings
+Go to iDRAC Settings -> Network -> IPMI Settings -> Uncheck "Enable IPMI Over LAN"
+2. Disable VLAN settings
+Go to iDRAC Settings -> Network -> VLAN Settings -> Uncheck "Enable VLAN ID "
+3. Setup SSL Encryption cipher suites
+Go to iDRAC Settings -> Network -> Services -> Web Server -> SSL Encryption -> Choose "128 bit or higher" from the drop down
+4. Enable TLS Support (Note: This option will be available in iDRAC which has firmware version > 2.40.40.40. Ignore if the step if the TLS option is unavailable)
+Go to iDRAC Settings ->Network -> Services -> Web Server -> TLS Protocol -> Choose "TLS 1.2 only"
+5. Enable SSH Settings
+Go to iDRAC Settings -> Network -> Services -> SSH -> Check "Enabled"
+Change Port Number to 22000
+6. Disable Telnet
+Go to iDRAC Settings -> Network -> Services -> Telnet -> UnCheck "Enabled"
+7. Enable Remote Racadm
+Go to iDRAC Settings -> Network -> Services -> Remote RACADM -> Check "Enabled"
+8. Change SNMP Community Name
+Go to iDRAC Settings -> Network -> Services -> SNMP Agent -> Check "Enabled"
+Change the default SNMP Community Name "public" to the hostname like "080-100.exotel.in"
+9. Disable Redfish Api Access
+Go to iDRAC Settings -> Network -> Services -> Redfish -> UnCheck "Enabled"
+10. Disable VNC Server
+Go to iDRAC Settings -> Network -> Services -> VNC Server -> UnCheck "Enable VNC Server"
+11. IP Filter iDRAC
+Go to iDRAC Settings -> Network -> Advanced Settings -> Check "IP Range Enabled"
+Enter the IP Range Address as 13.228.138.217
+Enter the Subnet Mask as 255.255.255.254
+Steps to Access iDRAC from the Windows Bastion
+1. Since iDRAC is ip filtered, it can be accessed only from the aws windows bastion 13.228.138.217
+1a . Login to Aws Console . Search for "idrac" in EC2 Instances. If the machine is stopped, Please start it . (Note: Please don't forget to stop the machine once the work with idrac is done.)
+2. To open 13.228.138.217 , you need rdesktop
+sudo apt-get install rdesktop
+3. Now open remote desktop as follows ,
+rdesktop -g 90% -u idrac ec2-13-228-138-217.ap-southeast-1.compute.amazonaws.com
+4. Ask the password from Athavan or Hassim .Log in to the server
+5. Open Internet explorer and browse by using iDRAC ip.
+
+
+
+
+
+
+
+
+OS Installation Procedure:
+Click the Launch option in iDRAC Overview page. It downloads viewer.jlnp file. You need java jre and icedtea plugin to be installed in your system to open this file. The file can be opened by just double clicking or via the shell javaws viewer.jlnp
+Open idrac virtual console
+Go to Virtual Media -> Connect Virtual Media -> Map CD/DVD -> Locate CentOS 6.10 iso from your laptop -> Map Device
+Select Next Boot -> Virtual CD / DVD / ISO
+Click Power -> Warm boot -> Click Ok for all prompts .
+You will see Cent os screen on booting
+Prompt for Media Test -> Press Skip
+Select "Install or Upgrade Centos" (This screen might not appear sometimes when you install OS for the first time. Ignore )
+Next screen takes some times to load
+Choose Language -> English
+Select keyboard -> U.S English
+Choose "Basic Storage Devices"
+Choose "Fresh Installation"
+Enter Hostname => example 080-17.exotel.in
+Click "Configure Network" -> Enter the ip address for em1 ,em2 ,em3 ,em4 as configured in ip sheet
+Select TImeZOne -> Asia/Kolkatta
+Enter root password and update it to the trello card and IP addresses sheet.
+In the PartitionMenu -> Choose Create Custom Layout
+Delete all Partions if exist already -> 1 Physical voulme will be present now with approximately 500 gb -> click the volume and click "Create" ->Click Standard Parition -> Select the mount point as /boot, File system as ext4 -> Select size as 500 mb -> Select Force to be a "Primary Partition" -> Click ok
+Click Free Space (approx 525 gb ) -> Click create -> Click Standard Parition -> Choose File System as Swap -> Select size as 8192 mb -> Select OK
+Click Free Space -> Click Create -> Click Standard Parition -> Choose Mount Point as / and File System ext4 and Size as remaining size -> -> Click Ok
+Click Next -> Pop asks "Write Changes to Disk" -> Click Write Changes to Disk
+Click Next on the next screen
+Os will start Downloading the packages and starts installation
+Click Reboot Finally
+Wait for the server to reboot -> Enter the username as "root" and the password for root as Exotel@123
+Console opens for rooth
+
+
+Activation of ILL :
+1. Enter username and Password
+2. cd /etc/sysconfig/network-scripts/
+3. vi ifcfg-em1 . (It depends whether em1 or em2 or em3 or em4 based on the ipconfig that you did during OS installation )
+4. Check if IPADDR , Gateway ,DNS is Present . Confirm OnBoot=yes .
+5. sudo service network restart
+6. ping google.com should work
+6.1 If ping does not work , run ifconfig and check if the ip that you gave is present. If not something is wrong in the ifcfg-em{1,2,3,4} file.
+6.2 If ping doesn't work, may it be an ill issue. Check with NOC that the ILLs are connected to the server
+6.3 If ping doesn't work, may be there is a mismatch in the settings ,like em1 is connected with an Airtel ILL but the ip you have entered in ifcfg-em1 might be a vodafone IP.
+
+DNS Entry in Route53
+AWS Route 53 Configuration :
+Go to AWS Console.
+Search Route 53
+Click Hosted Zones
+Click exotel.in (Type Public)
+click "Create Record Set "
+Enter the host name like "080-16" in Name
+Enter the IP address in the Value
+Click Create
+Repeat the above steps for exotel.com (Type Public)
+
+
+
+
+
+TS Deployment through Jenkins Job.
+
+
+Search for  ts-ami-setup-build 
+Goto build with parameters:
+PROD_GIT_BRANCH : feat/ts-centos-7-changes-updated  -->  Click Build
+Search for build ts-ami-deploy
+Click Build with Parameters 
+Select ts_base_ami 
+GIT BRANCH : feat/ts-centos-7-changes-updated
+Enter host name:
+Enter the SSH User Name: root
+SSH Password: *****
+Sillyio name: 040-veeno-1
+Build 
+
+
+
+Once the build run successfully . reboot the server.
+sudo reboot now
+
+Note : If sshd is stopped - > start it manually- > sudo service sshd start
+
+To check status - > sudo service sshd status
+
+
+
+(To Cross Verify: SSH into the telephone server -> run tail -f /var/log/ansible.log )
+1. User Verification:
+Check if the required users (asterisk, exomon, recotrix) are present
+Command: less /etc/passwd
+Expected Output: the file should have the users listed above (asterisk, exomon, recotrix)
+
+2. ssh configs:
+Check if .ssh directories are created for asterisk and exomon users.
+Command: sudo bash 
+
+ll /home/asterisk/.ssh;
+ ll /home/exomon/.ssh
+Expected Ouput: It should list all the files present in the in that folder
+
+https://chat.google.com/room/AAAACd_Jbmo/5vKsA9wLCvg
+Check for authorized keys
+grep "exotel@prod-build-node" /home/asterisk/.ssh/authorized_keys
+grep "exotel@Cron-Machine2" /home/asterisk/.ssh/authorized_keys
+
+3. bash configs:
+run the same: ll -a /home/asterisk/
+Check if .bashrc, .bash_profile, .bash_history, .bash_logout is present in the 
+/home/asterisk/
+Note: In centos 7 we observe .bash_history is missing in /home/asterisk post deployment . Run below command to fix that 
+
+sudo cp /root/.bash_history /home/asterisk/;sudo chmod 644 /home/asterisk/.bash_history;chown asterisk:asterisk /home/asterisk/.bash_history
+
+4. AWS Credentials:
+Check if AWS credentials are correct in cat /home/asterisk/.aws/credentials && cat /root/.aws/credentials
+5. fail2ban
+Check if fail2ban is running:
+Commad: sudo service fail2ban status
+Expected Output:
+WARNING 'pidfile' not defined in 'Definition'. Using default one: '/var/run/fail2ban/fail2ban.pid' Status |- 
+Number of jail: 4 `- Jail list: asterisk-tcp, asterisk-udp, ssh, vsftpd
+Caution: If fail2ban says not running, please check after asterisk deployment in the last step and restart fail2ban and it will give you the above message.( Fail2ban depends on asterisk)
+6. sshd-config
+Check if 22000 port is opened
+Command: less /etc/ssh/sshd_config and Search for `Port 22000`
+
+OR grep -i "22000" /etc/ssh/sshd_config
+Expected Output: Port 22000 should be present
+
+Search for build ts-ami-deploy or Rebuild above build and enter ts_environmental_setup
+Click Build with Parameters 
+Select ts_environmental_setup 
+GIT BRANCH : feat/ts-centos-7-changes-updated
+Enter Host name:
+Enter the SSH User Name: root
+SSH Password: ****
+Sillyio name:
+Build
+Wait for the build to run successfully
+           Verify After build is successful.
+            Ruby: Check the ruby version
+           Command: /opt/jruby-1.7.1/bin/jruby --version
+           Expected output: The version should be 1.7
+           MySQL: Check if mysql is running
+           Command: sudo service mysqld status
+Note
+:It will take 25min for the deployment of environmental setup
+Search for build ts-ami-deploy
+           Click Build with Parameters
+           Select ts_services_setup 
+GIT BRANCH :feat/ts-centos-7-changes-updated
+           Enter host name
+           Enter the SSH User Name:
+           Enter SSH Password:
+           Enter Sillyio name:
+           Build 
+           Wait for the build to run successfully
+Note: Please note the pid of each process after running the following command.
+
+
+                 beanstalk:Command: sudo status beanstalkd
+                 Dnsmasq: Command: sudo service dnsmasq status
+                 rsyslog:Command: sudo service rsyslog status
+                  Squid: Command: sudo service squid status [Ignore if it stopped - It will be fine after squid upgrade]
+                  Vsftpd: Command: sudo service vsftpd status
+                  Fail2ban: Command: sudo service fail2ban status [Ignore if it stopped - It will be fine after asterisk deployment]
+
+
+Search for build ts-ami-deploy
+Click Build with Parameters 
+GIT BRANCH : feat/ts-centos-7-changes-updated
+Select ts_telegraf_installtion 
+Enter host name:
+Enter the SSH User Name  
+SSH Password 
+ Sillyio name 
+ Build 
+ Wait for the build to run successfully
+Note: Even if it fails , that should be fine
+
+
+Search for monitoring-scripts-build 
+GIT_BRANCH: master
+NAGIOS_DNS_NAME: nagios.internal.exotel.in
+Build
+Get it from monitoring-scripts-build , click the last build , scroll down and take the version number. Look for something like monitoring-scripts/prod/monitoring-scripts-458.tar.gz . So the version number is 458 
+            
+Search for monitoring-scripts-deploy-ts 
+Enter Host Name:  <HOST>
+BRANCH: master
+Version Number:  <get version from above build>
+ENV: prod
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Search for ts-code-push 
+SERVICE: asterisk 
+ANS_VERSION: 9-C7
+VERSION: latest-stable
+
+
+HOST: <enter the host name>
+EXTERNAL_VAR: conftype=slave 
+GIT_BRANCH: feat/ts-centos-7-changes / master
+Build
+Verify : sudo service asterisk status(pid should not change)
+
+
+Legolas -ts 
+Deploy  
+
+
+
+ANS_VERSION : 5-C7
+VERSION: latest-stable
+HOSTS:<enter hostname>;
+GIT_BRANCH:  feat/ts-centos-7-changes / master
+Verify :sudo service legolas-ts status(pid should not change)
+ts_gracefulstartstop_deploy 
+                           HOSTS: <enter hostname>
+                           GIT_BRANCH: master
+             Please ensure gracefulrestart.sh. script present under  /home/asterisk/
+
+Deploy below services using this build  - >  New Build -> use next branch
+
+adhearsion-> use https://build.corp.exotel.in:8080/job/Adhearsion/job/adhearsion-build-prod/
+https://build.corp.exotel.in:8080/job/Adhearsion/job/adhearsion-deploy-prod/
+
+If the above build is showing skipping: no hosts matched , then 
+ use https://build.corp.exotel.in:8080/job/Adhearsion/job/adhearsion-build-prod/  -> with ur fet branch
+ And use this for deployment with ur feat brancnranch  New Build
+
+
+firefoot-ts
+amix
+eventshipper
+causix
+causixenqueuer
+route-switcher
+voipmonitor
+fangorn
+traffic-shaper
+
+Adhearsion
+Adhesion Build: 
+Pre-requisite : Create rough sillyio file for the server you are deploying
+Ex : If you are deploying for 0495-7 server - > create sillyio.yml.0495_7 inside exotel_code/asterisk/adhearsion/sillyio/components/sillyio and push it to  feat/ts-centos-7-changes [Do that changes by rebasing to this branch (git fetch --all - > git checkout feat/ts-centos-7-changes - > create sillyio file and push )]
+build → GIT_BRANCH:  feat/ts-centos-7-changes-updated → Build
+Copy the build version once the build completed [see 15th line from bottom in console output]
+Ex : upload: ../adhearsion.tar.gz to s3://exotel-build/adhearsion/prod/adhearsion-904.tar.gz
+So the adhearsion build version is 904
+
+deploy 
+ANS_VERSION: 29-C7
+VERSION: <give the build number from above step build-prod i.e 904>
+HOST: <enter hostname>
+EXTERNAL_VARS: conftype=slave
+GIT_BRANCH: feat/ts-centos-7-changes / next
+Rest - keep default
+
+ahn process check:
+Command: sudo status ahn
+Expected Output: It should be running without process id getting changed (two    checks) If it is stopped, try starting it and further if it is failing or process id is getting changed, rerun the above build (adhearsion-deploy-prod)
+
+Firefoot-ts
+
+ANS_VERSION: 7-C7
+VERSION: latest
+HOST: <enter hostname>
+EXTERNAL_VARS: conftype=slave
+GIT_BRANCH: feat/ts-centos-7-changes / next
+Rest - keep default
+
+	Command: sudo status firefoot-ts
+	Expected Output: It should be running without process id getting changed (two checks)
+	If it is stopped, try starting it and further if it is failing or process id is getting changed, rerun the above build 
+
+
+
+
+
+
+
+Amix
+       		ANS_VERSION: 12-C7
+VERSION: latest-stable
+HOST: <enter hostname>
+EXTERNAL_VARS: conftype=slave
+GIT_BRANCH: feat/ts-centos-7-changes / next
+Rest - keep default
+
+Verify :sudo status amix (3 checks pid should not change)
+
+Eventshipper
+    	ANS_VERSION: 8-C7
+VERSION: latest-stable
+HOST: <enter hostname>
+EXTERNAL_VARS: conftype=slave
+GIT_BRANCH: feat/ts-centos-7-changes / next
+Rest - keep default
+Verify :sudo status eventshipper (3 checks pid should not change)
+
+
+          
+       
+
+
+Rsyslog - New-deploy-build
+    HOSTS: <enter hostname>
+    GIT_BRANCH: master
+    FORK: 5
+    USER: asterisk
+    RSYSLOG_TYPE: log
+    SERVICES: "adhearsion","firefoot-ts","eventshipper","legolas-ts"
+     ENV: prod-ts
+     Build  (click on build)
+                  command : grep mum1 /etc/rsyslog.d/logs.conf
+                  Expected output: It should show mumbai stamp rsyslog servers host entry
+                                              Target="rsyslog.mum1.exotel.in"
+	                                  Target="rsyslog.mum1.exotel.in"
+	                                 Target="rsyslog.mum1.exotel.in"
+	                                Target="rsyslog.mum1.exotel.in"
+
+
+
+Run the following commands:
+sudo su
+sudo sed -r 's/(.*) : false/echo "\1\n false"/ge' /opt/jruby-1.7.1/lib/ruby/gems/shared/gems/mongrel-1.1.5-java/lib/mongrel/handlers.rb > /opt/jruby-1.7.1/lib/ruby/gems/shared/gems/mongrel-1.1.5-java/lib/mongrel/handlers.rb_
+sudo mv /opt/jruby-1.7.1/lib/ruby/gems/shared/gems/mongrel-1.1.5-java/lib/mongrel/handlers.rb_ /opt/jruby-1.7.1/lib/ruby/gems/shared/gems/mongrel-1.1.5-java/lib/mongrel/handlers.rb
+
+
+
+
+Check for the followings:
+                             Python version: Command: python --version
+                             Expected Output: Python 2.7.5
+                             Pip version: Command: pip --version
+pip --version
+                              Expected Output: pip 20.3.4 from /usr/lib/python2.7/site-packages/pip (python 2.7)
+                              pip module check: Command: pip list
+                              aws-cli, python-yaml, boto, botocore3:
+                              Expected Output: The list should contain all the three modules
+                               Kernel Version: Command: uname -r
+                               Expected Output: 3.10.0-1160.53.1.el7.x86_64
+                               Libevent: Command: ldconfig -p | grep event
+                               Expected Output : Should list the version of event
+	libevent_pthreads-2.0.so.5 (libc6,x86-64) => /lib64/libevent_pthreads-2.0.so.5
+	libevent_openssl-2.0.so.5 (libc6,x86-64) => /lib64/libevent_openssl-2.0.so.5
+	libevent_extra-2.0.so.5 (libc6,x86-64) => /lib64/libevent_extra-2.0.so.5
+	libevent_core-2.0.so.5 (libc6,x86-64) => /lib64/libevent_core-2.0.so.5
+	libevent-2.0.so.5 (libc6,x86-64) => /lib64/libevent-2.0.so.5
+
+                               fail2ban:Command: sudo service fail2ban status
+                                Expected Output: fail2ban should be running . If it is not running , start fail2ban
+
+
+
+Repeat the process check done in the 4th step as follows. Confirm if the process id of respective process is same as checked in 4th step
+                    Beanstalk: Command: sudo status beanstalkd
+                    Dnsmasq: Command: sudo service dnsmasq status
+                    Rsyslog: Command: sudo service rsyslog status
+                    Squid: Command: sudo service squid status [Ignore if it is not running  , it will be fine post squid upgrade]
+                    Vsftpd: Command: sudo service vsftpd status
+                    Fail2ban: Command: sudo service fail2ban status
+
+
+
+
+
+
+Deploy causix and causixenqueuer
+Create causix_recordings directory under recordings before proceeding with next step.
+
+Command: mkdir /var/log/exotel/recordings/causix_recordings
+
+              Causix: 
+
+		ANS_VERSION: 5-C7
+VERSION: latest-stable
+HOST: <enter hostname>
+EXTERNAL_VARS: conftype=slave
+GIT_BRANCH: feat/ts-centos-7-changes / next
+Rest - keep default
+
+	Causix-enqueuer
+          ANS_VERSION: 2-C7
+VERSION: latest-stable
+HOST: <enter hostname>
+EXTERNAL_VARS: conftype=slave
+GIT_BRANCH: feat/ts-centos-7-changes / next
+Rest - keep default
+
+    Commands to Check causix and causixenqueuer service status.
+    Causix:   sudo status causix
+    Causixenqueuer: sudo status causixenqueuer 
+                     
+
+Deploy RouterSwitcher
+ANS_VERSION: 11-C7
+VERSION: latest-stable
+HOST: <enter hostname>
+EXTERNAL_VARS: conftype=slave
+GIT_BRANCH: feat/ts-centos-7-changes / next
+Rest - keep default
+
+Voipmonitor
+		ANS_VERSION: 21-C7
+VERSION: latest-stable
+HOST: <enter hostname>
+EXTERNAL_VARS: conftype=slave
+GIT_BRANCH: feat/ts-centos-7-changes / next
+Rest - keep default
+sudo service voipmonitor status
+
+It may fail at restart voipmonitor - that should be fine . Restart it manually if not running
+
+
+TASK [voipmonitor : Restart VoIPmonitor] ***************************************
+Monday 17 January 2022  01:13:29 +0530 (0:00:00.294)       0:00:47.492 ******** 
+fatal: [127.0.0.1]: FAILED! => {"changed": false, "msg": "Unable to start service voipmonitor: Failed to start voipmonitor.service: Unit not found.\n"}
+
+
+
+
+Fangorn
+		ANS_VERSION: 14-C7
+VERSION: latest-stable
+HOST: <enter hostname>
+EXTERNAL_VARS: conftype=slave
+GIT_BRANCH: feat/ts-centos-7-changes / next
+Rest - keep default
+sudo service fangorn status
+Traffic-shaper
+    	ANS_VERSION: 1-C7
+VERSION: 6-C7
+HOST: <enter hostname>
+EXTERNAL_VARS: conftype=slave
+GIT_BRANCH: feat/ts-centos-7-changes / next
+Rest - keep default
+sudo bash /home/asterisk/traffic-shaper/trafficShaper.sh status
+
+
+
+
+
+
+
+Note: For Networkjuju procedures, please check with the SRO Team.
+Updated network juju for sip
+
+updated file is here - 1)https://drive.google.com/drive/folders/1Yf_WGNApfuBet-tSU6d1TraKHV9J8Hpl
+If UUID is not created for any interface we can get that created manually  for the interfaces command : uuidgen
+
+download above file
+
+2)push it to respective machines
+scp -i /home/sarbajit-sro/Documents/pemfile/centos.pem -P 22000  /home/sarbajit-sro/Documents/SARBAJIT/networkjuju-stable-centos7.tar.gz  asterisk@011-veeno-1.exotel.in:/home/asterisk/
+
+3)tar -xvf networkjuju-stable-centos7.tar.gz
+mv netconf/common/helpers/connection_helper.php netconf/common/helpers/old-connection_helper.php
+cp connection_helper.php netconf/common/helpers/
+cp network-sip-helper.php netconf/networkTools/network-sip-helper.php
+mv netconf/networkTools/networkjuju.php netconf/networkTools/old-networkjuju.php
+cp networkjuju.php netconf/networkTools/
+cp sipconfig.txt netconf/squidTools/config/
+
+4)copy from any server to local for copying the format:-
+scp -i /home/sarbajit-sro/Documents/pemfile/centos.pem -P 22000 asterisk@0731-8.exotel.in:/home/asterisk/netconf/configs/network_config.php.0731_8 /home/sarbajit-sro/Documents/SARBAJIT
+
+5)copy from local to server:
+scp -i /home/sarbajit-sro/Documents/pemfile/centos.pem -P 22000  /home/sarbajit-sro/Documents/SARBAJIT/network_config.php.0731_8  asterisk@182.71.247.73:/home/asterisk/netconf/configs/
+
+6)cd  netconf/configs/
+cp network_config.php.0731_8 network_config.php.0731_4
+7)sudo ln -sf network_config.php.0731_4 network_config.php
+
+8)note:Update correct ip/netmask/gateway/operator/ckt id of operator/metrics and below parameters as well  etc in the config file
+
+                "SIP_ENABLED": "",
+                "SIP_PROXY_IP": "",
+                "MEDIA_IP": ""
+
+
+
+9)Run networkjuju.php 
+Cd netconf/networkTools
+sudo php -f networkjuju.php and give yes post config restart network
+
+
+
+
+Twilix deployment
+
+Now if the network configs are good to go , start  the twilix deployment 
+Lets get the code changes done
+cd exotel_code/twilix/
+vim Config.php.prod
+Vim Config.php.mum1
+cd /exotel_code/twilix/haproxy/
+Vim haproxy.cfg
+
+
+Update the release forum for deployment plan
+
+
+Update in the deployment forum during the deployment mentioning the older version
+
+Follow the below SOP for deployment ➖
+https://docs.google.com/document/d/1KrhjpTQ-CMw9vhit7QeEEARHPIwj-cABhZl-vaHNzVs/edit#heading=h.smnwvjxeh3ck
+
+Report:
+https://docs.google.com/document/d/1KrhjpTQ-CMw9vhit7QeEEARHPIwj-cABhZl-vaHNzVs/edit#heading=h.smnwvjxeh3ck
+
+
+
+
+
+Haproxy / Squid upgrade : 
+
+There are few modifications to be done in code for centos7 - Raji is doing that.
+Till it is completed , please follow below steps ,
+
+Pre-requisite - Complete networkjuju steps and configure all required IPs . In case you configure IP post haproxy / squid config you will have to run haproxy / squid file generation again
+
+Haproxy : 
+Upgrade using below command
+sudo su -
+sudo cp /usr/sbin/haproxy /tmp/haproxy_backup && haproxy -v && cd /tmp && wget https://www.haproxy.org/download/2.4/src/haproxy-2.4.2.tar.gz && tar -xzf haproxy-2.4.2.tar.gz && cd haproxy-2.4.2 && make TARGET=linux-glibc USE_NS= EXTRA_OBJS="addons/promex/service-prometheus.o" && sudo service haproxy stop && make install && sudo service haproxy stop && sleep 1 && sudo rm -rf /usr/sbin/haproxy && sudo cp /usr/local/sbin/haproxy /usr/sbin/haproxy && rm -rf /tmp/haproxy-2.4.2.tar.gz && rm -rf /tmp/haproxy-2.4.2 && haproxy -v
+Once it is completed check the version - haproxy - v . Version should be 2.4.2-553dee3 2021/07/07
+Copy the latest haproxy generate code from 0495-5 server and push it to your server
+Copy  - > scp  -P 22000 -r asterisk@0495-5.exotel.in:/tmp/netconf_new* .
+Push  - > sudo scp  -P 22000 -r netconf_new* root@0731-5.exotel.in:/tmp/    and enter root password
+Once pushed - > 
+cd /tmp/netconf_new/haproxyTools
+sudo php -f haproxyConfigGenerator.php - > This will generate haproxy.cfg in same directory
+Copy haproxy.cfg to /etc/haproxy/ and restart and check the haproxy status
+sudo cp haproxy.cfg /etc/haproxy/
+sudo service haproxy restart
+sudo service haproxy status 
+It should be running without crashing. If still not running it could be due to /var/run/haproxy.pid file is missing 
+Create /var/run/haproxy.pid and restart and check status
+sudo touch /var/run/haproxy.pid 
+sudo service haproxy restart
+sudo service haproxy status 
+If still not running - could be /run/haproxy/admin.sock file
+Run this command - sudo mkdir /run/haproxy;sudo touch  /run/haproxy/admin.sock;sudo chmod 666 /run/haproxy/admin.sock
+sudo service haproxy restart
+sudo service haproxy status
+
+Squid : 
+Upgrade using below command
+sudo su -
+cd /home/asterisk
+
+
+sudo cp /usr/sbin/squid /tmp/squid_backup && squid -v && cd /tmp && wget http://www.squid-cache.org/Versions/v3/3.5/squid-3.5.28.tar.gz && tar -xzf squid-3.5.28.tar.gz && cd squid-3.5.28 && sudo yum install openldap-devel.x86_64 -y && sudo yum install pam-devel.x86_64 -y && ./configure "--build=x86_64-redhat-linux-gnu" "--host=x86_64-redhat-linux-gnu" "--target=x86_64-redhat-linux-gnu" "--program-prefix=" "--prefix=/usr" "--exec-prefix=/usr" "--bindir=/usr/bin" "--sbindir=/usr/sbin" "--sysconfdir=/etc" "--datadir=/usr/share" "--includedir=/usr/include" "--libdir=/usr/lib64" "--libexecdir=/usr/libexec" "--sharedstatedir=/var/lib" "--mandir=/usr/share/man" "--infodir=/usr/share/info" "--enable-internal-dns" "--disable-strict-error-checking" "--exec_prefix=/usr" "--libexecdir=/usr/lib64/squid" "--localstatedir=/var" "--datadir=/usr/share/squid" "--sysconfdir=/etc/squid" "--with-logdir=/var/log/squid" "--with-pidfile=/var/run/squid.pid" "--disable-dependency-tracking" "--enable-arp-acl" "--enable-follow-x-forwarded-for" "--enable-auth" "--enable-auth-basic=LDAP,MSNT-multi-domain,NCSA,PAM,SMB,getpwnam,SASL,DB,POP3,RADIUS" "--enable-auth-ntlm=smb_lm,fake" "--enable-auth-digest=LDAP,eDirectory" "--enable-auth-negotiate=kerberos" "--enable-external-acl-helpers=LDAP_group,session,unix_group,wbinfo_group" "--enable-cache-digests" "--enable-cachemgr-hostname=localhost" "--enable-delay-pools" "--enable-epoll" "--enable-icap-client" "--enable-ident-lookups" "--enable-linux-netfilter" "--enable-referer-log" "--enable-removal-policies=heap,lru" "--enable-snmp" "--enable-ssl" "--with-included-ltdl" "--enable-storeio=aufs,diskd,ufs" "--enable-useragent-log" "--enable-wccpv2" "--enable-esi" "--enable-http-violations" "--with-aio" "--with-default-user=squid" "--with-filedescriptors=16384" "--with-dl" "--with-openssl" "--with-pthreads" "build_alias=x86_64-redhat-linux-gnu" "host_alias=x86_64-redhat-linux-gnu" "target_alias=x86_64-redhat-linux-gnu" "CFLAGS=-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -mtune=generic -fpie" "LDFLAGS=-pie" "CXXFLAGS=-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -mtune=generic -fpie" && make && make install
+Once it is completed check the version - squid -v . Version should be 3.5.28
+Copy the latest squid generate code from 0495-5 server and push it to your server [This is not required if already above haproxy steps completed]
+Copy  - > scp  -P 22000 -r root@0495-5.exotel.in:/tmp/netconf_new* .
+Push  - > scp  -P 22000 -r netconf_new* root@0731-5.exotel.in:/tmp/ 
+Once pushed - > 
+cd /tmp/netconf_new/squidTools
+sudo php -f squidConfigCreator.php - > This will generate squid.conf in same directory
+Copy squid.conf to /etc/squid/ and restart and check the squid status
+sudo cp squid.conf /etc/squid/
+sudo service squid restart
+sudo service squid status 
+It should be running without crashing. If still not running it could be due to ncsa_auth file is missing [inside /usr/lib64/squid/]
+Copy the file from 0495-5 server and restart and check status
+Copy - > scp  -P 22000 -r root@0495-5.exotel.in:/usr/lib64/squid/ncsa_auth .
+Push - > scp  -P 22000 -r ncsa_auth  root@0731-5.exotel.in: 
+Login to server [in this case 0731-5] and move the ncsa_auth file from /home/asterisk to /usr/lib64/squid/
+sudo mv /home/asterisk/ncsa_auth /usr/lib64/squid/
+sudo service squid restart
+sudo service squid status 
+Test Squid - Test the squid connectivity using below command
+curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23451' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c' && curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWx kdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23452' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c' && curl  --request GET --proxy 'http://127.0.0.1:23432' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c' && curl  --request GET --proxy 'http://127.0.0.1:23433' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'
+Expected O/P should be 
+		{
+"status": "Working"
+}{
+"status": "Working"
+}{
+"status": "Working"
+}{
+"status": "Working"
+}
+
+Post this build haproxy build again to revalidate this changes
+
+Important:
+
+Add sip interface here in /home/asterisk/netconf/squidTools/config/sipconfig.txt
+
+Post this build haproxy build again to revalidate this changes 
+Use master branch , if it fails use feat/haproxy-config
+
+Note : Incase you need to generate haproxy / squid again , upgrade steps are not needed to be run again . Start from haproxy / squid generate step
+
+WAN Router  for PRI servers
+
+Wan Router to be installed now. (ping SRO for video on how to install wanrouter)
+
+WAN url:  Current Version
+ftp://ftp.sangoma.com/linux/current_wanpipe/wanpipe-7.0.29.tgz
+Installation video - Follow the steps in video
+
+
+After installing the wan router , run the following commands,
+With wanrouter:-
+sudo stop ahn;sudo stop amix;sudo service asterisk stop; sudo service wanrouter stop; sudo service dahdi stop; sudo stop firefoot-ts; sudo stop eventshipper;
+
+sudo service dahdi start;sudo service asterisk start;sudo start ahn;sudo start amix; sudo start firefoot-ts; sudo start eventshipper;
+
+Without wanrouter run below:-
+
+
+sudo stop ahn; sudo stop amix; sudo service asterisk stop; sudo stop firefoot-ts; sudo stop eventshipper;
+
+sudo service asterisk start; sudo start ahn; sudo start amix; sudo start firefoot-ts; sudo start eventshipper;
+
+
+Addition of servers to databases:
+Login to jenkins and run respective build
+Note:Validation query in small twilix db replica(always run query in replace to validate)
+
+Step 1:
+Create a server using below build:
+https://build.corp.exotel.in:8080/job/Insert%20Server/
+https://build.corp.exotel.in:8080/job/Insert%20Server_new_2/
+
+
+Select * from Server where code=’080_01’;
+
+
+Step 2:
+Create a card for adding sip interface or pri for server using below build:
+https://build.corp.exotel.in:8080/job/Insert%20Card/
+select * from Card where server=<serverid>;
+
+
+Step 3:  check if the network is existed or not if not please create using below job
+Create a Network table entry for network ip of ILL /operator using below build
+https://build.corp.exotel.in:8080/job/Insert%20Network/
+select * from Network where Network = "<network ip address of operator> ";
+
+
+step 4:
+Create a entry for server interface table for DNS switch using below build
+https://build.corp.exotel.in:8080/job/Insert%20ServerInterface/
+select * from ServerInterface where ServerId in (select id from Server where code = '<server_code>');
+
+
+
+
+
+Create Plan and FCVPlan table entries  by transaction tracker
+
+
+
+
+
+
+Create the SIP line configs in the server .
+Get the SIP detail , SIP IP to be configured at the server , SBC IP and Media IP
+
+Configure the SIP interfaces ;
+SIP interface (Bonding) configuration. 
+
+
+Update asterisk conf
+Deploy asterisk configs  to get the latest of sip.conf from master : 
+https://build.corp.exotel.in:8080/job/asterisk-configs-build/    >> build
+https://build.corp.exotel.in:8080/job/asterisk-configs-deploy/  >> deploy
+
+Deploy the secureasterisk used by streaming services
+https://build.corp.exotel.in:8080/job/secure-asterisk-build/   –build
+https://build.corp.exotel.in:8080/job/secure-asterisk-deploy/    –deploy
+
+sudo vim /etc/asterisk/sip.conf   >> copy one of the config and replicate it for the new line.
+
+
+
+Update the hosts file >
+sudo  vim /etc/hosts  >> refer to the old pipe config (domain should be the same as in the silliyio) and replicate it for the new line.
+
+
+
+Update the asterisk config.
+Asterisk -rx “sip reload”  or we can restart the asterisk itself.
+
+
+
+Verify  the peer  health.
+Asterisk -rx “sip show peers”
+
+
+Insert the PRI table entry
+
+Create a entry for pri card /sip interface in pri table using below build
+https://build.corp.exotel.in:8080/job/Insert%20Pri/
+ select * from Pri where card in (select id from Card where server = (select id from Server where code = "<servercode>")) order by span limit 1000;
+
+
+
+
+
+1) For starting the service - sudo systemctl start <service name>
+
+2) For stopping the service - sudo systemctl stop <service name>
+
+3) For deregistering service from bootup - sudo systemctl disable <service name>
+
+4) For checking the status of service - sudo systemctl status <service name>
+
+4) tools folder has 4 scripts we can create softlink as below 
+cd /sbin/
+sudo ln -s /etc/systemd/system/tools/systemctl_start start                                                                     
+sudo ln -s /etc/systemd/system/tools/systemctl_stop stop                                                                       
+sudo ln -s /etc/systemd/system/tools/systemctl_status status                                                                   
+sudo ln -s /etc/systemd/system/tools/systemctl_restart restart
+
+5) After above changes we can start/stop/status as below as well
+sudo start ahn
+sudo stop ahn
+sudo status ahn
+sudo restart ahn
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Update networkjuju - Download it from 0495-5 server and update to the server in location /home/asterisk/netconf/networkTools/
+scp -P 22000 -r asterisk@0495-5.exotel.in:networkjuju.php .
+scp -P 22000 networkjuju.php  asterisk@0731-5.exotel.in:/home/asterisk/netconf/networkTools/
+Create networkjuju for the server in    path:cd netconf/configs - sudo vim network_config.php.<server-name> and create a symlink
+sudo vim network_config.php.0731_5
+sudo ln -sf network_config.php.0731_5 network_config.php
+Copy paste network_config.php from other server / create new
+Add NM_CONTROLLED parameter along in netconf/configs/network_config.php
+	Ex:  
+       "em2": {
+                "IPADDR": "182.71.48.42",
+                "NETMASK": "255.255.255.240",
+                "GATEWAY": "182.71.48.33",
+                "DNS1": "",
+                "DNS2": "",
+                "ONBOOT": "yes",
+                "BOOTPROTO": "none",
+                "NM_CONTROLLED": "no",
+                "METRIC": "1"
+        },
+
+Run networkjuju.php 
+sudo php -f networkjuju.php and give yes
+
+
+
+
+
+
+
+
+SIP Configuration 
+
+Configure the interface for sip in networkconfig.php
+sudo vim netconf/configs/network_config.php
+run networkjuuju  in super mode
+sudo php netconf/networkTools/networkjuju.php 
+
+
+if you dont want to run the network juju then follow the below steps
+sudo vim /etc/sysconfig/network-script/ifcfg-p1p2
+configrue the ip route
+sudo vim /etc/sysconfig/network-script/route-p1p2
+sudo vim /etc/sysconfig/network-script/rule-p1p2
+update the iproute if required 
+sudo vim /etc/iproute2/rt_tables
+
+
+
+After the configs add the SBC IP and MEdia IP to iptables
+1. Check IPtable rules is the media ip and SBC ip is  addedto in accept chain:   sudo iptables -L
+
+2.If not added add by using the below command 
+sudo iptables -A INPUT -s ttsl.sip.com -j ACCEPT
+sudo iptables -A INPUT -s 192.168.34.12 -j ACCEPT
+asterisk -rx 'sip reload'
+sudo service iptables save
+sudo service iptables restart
+
+
+
+Funtional and non functional testing
+
+Login to the sro-cro machine.
+Cd /home/ec2-user/raji
+Vim call_test_IB.py   >> add the sheet URL 
+Ex:
+wsg = client.open_by_url(<sheet URL>')
+
+Vim call_test_OB.py  >> update the caller id  and phone number
+callerid="07971114547" #Testing Number
+from_number="08792572269" #Leg 1 Number
+
+
+
+
+
+
+
+Functional testing:
+
+USEFUL APIs
+
+to convert on to vn
+curl -XPOST "default:f7127af352491a86127aad77d7a1419e9ca3cef4@twilix.exotel.in/v1/Accounts/default/AvailablePhoneNumbers/1282655/makevn.json" -d'Rental=499&_state=available'
+
+purchase a VN
+curl -XPOST "exotelt:eb9132081dad84d938f207227c8a7e26467cbbeb5ed1151b@twilix.exotel.in/v1/Accounts/exotelt/IncomingPhoneNumbers/IN/Purchase" -d'PhoneNumber=+442046000689'
+
+connecting to flow API  
+
+curl -X POST 'https://suportbackup1m:8db336707e72215a116ffbcb2c31c52d103ce5b5@api.in.exotel.com/v1/Accounts/suportbackup1m/Calls/connect.json?From=08618752884&Url=https://my.exotel.com/suportbackup1m/exoml/start_voice/2839&CallerId=07935048065&__RequestedServerCode=079_15&__IgnoreServerStatus=true'
+
+curl -X POST 'https://exotelt:eb9132081dad84d938f207227c8a7e26467cbbeb5ed1151b@api.exotel.com/v1/Accounts/exotelt/Calls/connect.json?From=08792572269&Url=https://my.exotel.com/exotelt/exoml/start_voice/315737&CallerId=04048867052&__RequestedServerCode=040_veeno_01&__IgnoreServerStatus=true'
+
+curl -X POST 'https://exotelt:eb9132081dad84d938f207227c8a7e26467cbbeb5ed1151b@api.exotel.com/v1/Accounts/exotelt/Calls/connect.json?From=08792572269&Url=https://my.exotel.com/exotelt/exoml/start_voice/315737&CallerId=04048867052&__RequestedServerCode=040_veeno_01&__IgnoreServerStatus=true'
+
+
+get the testing Numbers in exotelt account 
+| 04048867052    | 8801 | 04048867052   | exotelt    |        0 |
+| 04048867053    | 8801 | 04048867053   | exotelt    |        0 |
+| 09240018702    | 8803 | 09240018702   | exotelt    |        0 |
+| 09240018703    | 8803 | 09240018703   | exotelt    |        0 |
+
+
+we have to test the below listed flows :-
+
+flows={'1':{'Gather IVR':'258729'},
+'2':{'Gather IVR-WAV':'258734'},
+'3':{'Gather DoNotEnter':'258733'},
+'4':{'Gather-DoNotPressFinishKey':'258732'},
+'5':{'ConnectRing':'258679'},
+'6':{'Just Connect Flow':'315737'},
+'7':{'Cause Code Flow':'258757'},
+'8':{'Passthru':'348306'}} 
+
+
+configure the leg2 number in all the flows in connect appllet
+
+{'1':{'Gather IVR':'258729'},
+
+Api to map VN to flow
+curl -XPUT exotelt:eb9132081dad84d938f207227c8a7e26467cbbeb5ed1151b@api.exotel.com/v2_beta/Accounts/exotelt/IncomingPhoneNumbers/04048867052 -d 'VoiceUrl=http://my.exotel.com/exotelt/exoml/start_voice/258729'
+API to call
+curl -X POST 'https://exotelt:eb9132081dad84d938f207227c8a7e26467cbbeb5ed1151b@api.exotel.com/v1/Accounts/exotelt/Calls/connect.json?From=08792572269&Url=https://my.exotel.com/exotelt/exoml/start_voice/258729&CallerId=04048867052&__RequestedServerCode=040_veeno_01&__IgnoreServerStatus=true'
+
+do the IB call from the from number on the callerid
+
+'2':{'Gather IVR-WAV':'258734'},
+
+curl -XPUT exotelt:eb9132081dad84d938f207227c8a7e26467cbbeb5ed1151b@api.exotel.com/v2_beta/Accounts/exotelt/IncomingPhoneNumbers/04048867052 -d 'VoiceUrl=http://my.exotel.com/exotelt/exoml/start_voice/258734'
+
+curl -X POST 'https://exotelt:eb9132081dad84d938f207227c8a7e26467cbbeb5ed1151b@api.exotel.com/v1/Accounts/exotelt/Calls/connect.json?From=08792572269&Url=https://my.exotel.com/exotelt/exoml/start_voice/258734&CallerId=04048867052&__RequestedServerCode=040_veeno_01&__IgnoreServerStatus=true'
+
+do the IB call from the from number on the callerid
+
+
+do the same for all the flows
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Onboarding new SIP:
+
+
+Add the host
+Sudo chattr -i /etc/hosts
+Sudo vim /etc/hosts
+Sudo chattr +i /etc/hosts
+Add asterisk peers
+Sudo vim /etc/asterisk/sip.conf
+
+Add silliyio conf
+
+Restart the services gracefully : https://build.corp.exotel.in:8080/job/ts_gracefulstartstop_prod/
+
+Add the numbers and test
+1 create the Plan and FCVPlan table entries   >> done by using queries in TT
+2 create PRI table entry
+3 add the number and test
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Load test
+
+take 2 VNs 
+
+VN2 map to   -- 259518  GREETING_LOOP   from
+VN1 map to   -- 265382  ztest2        id
+
+vn1 as CID
+vn2 as From number
+
+API to map VN to flow
+curl -XPUT exotelt:eb9132081dad84d938f207227c8a7e26467cbbeb5ed1151b@api.exotel.com/v2_beta/Accounts/exotelt/IncomingPhoneNumbers/04048867052 -d 'VoiceUrl=http://my.exotel.com/exotelt/exoml/start_voice/265382'
+
+
+
+map CID(VN1) to ztest2(265382)  inside the flow also use  number to dial should be FROM number(VN2) and in the  dial using option add the  CID(VN1) in their.
+map from number to TTM_LOAD_TEST_GREETING_LOOP(259518)
+
+
+Use the below script to do the bulk calls
+Vim loadtest.s
+
+#!/bin/bash
+for ((i=0;i<"$1";i++))
+do
+if [[ $(($i % 7 )) == 0 ]]; then
+ sleep 1
+ fi
+ #echo $i
+ command="$(curl -X POST https://exotelt:eb9132081dad84d938f207227c8a7e26467cbbeb5ed1151b@api.exotel.com/v1/Accounts/exotelt/Calls/connect -d 'From=<VN1>' -d 'CallerId=<VN2> -d 'Url=https://my.exotel.com/exotelt/exoml/start_voice/265382'| grep Sid)"
+echo $command
+done
+
+
+
+
+Sh loadtest.sh <number of calls>  ex : sh loadtest.sh 10
+
+After triggering the calls check the channel utilization is happening as expected in server pipe health or in the channel utilization graph
