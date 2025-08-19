@@ -208,7 +208,7 @@ def read_parent_interface_config(ssh_client, parent_if):
     
     return config_dict
 
-def create_vlan_config_remote(ssh_client, parent_if, vlan_id, ipaddr, gateway_ip):
+def create_vlan_config_remote(ssh_client, parent_if, vlan_id, ipaddr, gateway_ip, parent_config=None):
     """Create VLAN configuration file based on parent interface config"""
     vlan_if = f"{parent_if}.{vlan_id}"
     # Create: /etc/sysconfig/network-scripts/ifcfg-ens256.10  
@@ -229,8 +229,9 @@ def create_vlan_config_remote(ssh_client, parent_if, vlan_id, ipaddr, gateway_ip
         else:
             print(f"⚠️  VLAN config {cfg_file} exists but IP differs, updating...")
     
-    # Read parent interface configuration
-    parent_config = read_parent_interface_config(ssh_client, parent_if)
+    # Use provided parent config or read it if not provided (for backward compatibility)
+    if parent_config is None:
+        parent_config = read_parent_interface_config(ssh_client, parent_if)
     
     # Start with parent config as base
     vlan_config = parent_config.copy()
@@ -498,6 +499,87 @@ def check_previous_execution(ssh_client, entries, parent_if):
     
     return True
 
+def print_final_verification(ssh_client, interface_names, parent_if):
+    """Print final state of all modified files for verification"""
+    print("\n" + "🔍 FINAL VERIFICATION - Current State of Modified Files")
+    print("=" * 70)
+    
+    # Helper function to run command and get output without printing command details
+    def get_file_content(command):
+        try:
+            stdin, stdout, stderr = ssh_client.exec_command(command, timeout=60)
+            out = stdout.read().decode('utf-8').strip()
+            err = stderr.read().decode('utf-8').strip()
+            rc = stdout.channel.recv_exit_status()
+            return rc == 0, out, err
+        except Exception as e:
+            return False, "", str(e)
+    
+    # 1. Show /etc/hosts file
+    print("\n1. /etc/hosts file:")
+    print("-" * 30)
+    success, out, err = get_file_content("cat /etc/hosts")
+    if success:
+        print(out)
+    else:
+        print(f"❌ Failed to read /etc/hosts: {err}")
+    
+    # 2. Show route-switcher config
+    print("\n2. Route-switcher configuration:")
+    print("-" * 35)
+    success, out, err = get_file_content("cat /home/asterisk/route-switcher/config")
+    if success:
+        print(out)
+    else:
+        print(f"❌ Failed to read route-switcher config: {err}")
+    
+    # 3. Show iptables OUTPUT rules with line numbers
+    print("\n3. iptables OUTPUT rules:")
+    print("-" * 25)
+    success, out, err = get_file_content("sudo iptables -L OUTPUT --line-numbers")
+    if success:
+        print(out)
+    else:
+        print(f"❌ Failed to read iptables rules: {err}")
+    
+    # 4. Show parent interface config
+    print(f"\n4. Parent interface config ({parent_if}):")
+    print("-" * 40)
+    success, out, err = get_file_content(f"cat /etc/sysconfig/network-scripts/{parent_if}")
+    if success:
+        print(out)
+    else:
+        print(f"❌ Failed to read parent interface config: {err}")
+    
+    # 5. Show all VLAN interface configs
+    if interface_names:
+        print(f"\n5. VLAN interface configurations:")
+        print("-" * 35)
+        for vlan_if in interface_names:
+            cfg_file = f"/etc/sysconfig/network-scripts/ifcfg-{vlan_if}"
+            print(f"\n📄 {cfg_file}:")
+            success, out, err = get_file_content(f"cat {cfg_file}")
+            if success:
+                print(out)
+            else:
+                print(f"❌ Failed to read {cfg_file}: {err}")
+    
+    # 6. Show VLAN interface status
+    if interface_names:
+        print(f"\n6. VLAN interface status:")
+        print("-" * 25)
+        for vlan_if in interface_names:
+            print(f"\n🔌 {vlan_if} status:")
+            success, out, err = get_file_content(f"ip addr show {vlan_if}")
+            if success:
+                print(out)
+            else:
+                print(f"❌ Interface {vlan_if} not found or down: {err}")
+    
+    print("\n" + "=" * 70)
+    print("🔍 VERIFICATION COMPLETE")
+    print("=" * 70)
+
 def main():
     if len(sys.argv) < 6:
         usage()
@@ -536,6 +618,9 @@ def main():
         print(f"Parent interface: {parent_if}")
         print("=" * 60)
 
+        # Read parent interface configuration once at the beginning
+        parent_config = read_parent_interface_config(ssh_client, parent_if)
+        
         total_attempted = 0
         for entry in entries:
             # Parse entry: vlan-id:ip-address:domain
@@ -570,7 +655,7 @@ def main():
             print(f"   Domain: {domain}")
 
             # Create VLAN configuration on remote server
-            if create_vlan_config_remote(ssh_client, parent_if, vlan_id, ipaddr, gateway_ip):
+            if create_vlan_config_remote(ssh_client, parent_if, vlan_id, ipaddr, gateway_ip, parent_config):
                 # Collect data for batch operations
                 interface_names.append(vlan_if)
                 hosts_entries.append((hosts_ip, domain))  # ← Use hosts_ip (.9) instead of gateway_ip
@@ -626,6 +711,9 @@ def main():
 
         # At the end, call the improved summary
         print_execution_summary(interface_names, hosts_entries, iptables_entries, success_counts, len(entries))
+        
+        # Show final verification of all modified files
+        print_final_verification(ssh_client, interface_names, parent_if)
 
     finally:
         ssh_client.close()
