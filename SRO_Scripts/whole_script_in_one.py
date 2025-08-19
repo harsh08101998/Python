@@ -107,6 +107,8 @@ def parse_args():
     parser.add_argument('--task_24_branch_prometheus_node_exporter', default="master", help="Task 24: Jenkins Job - prod-prometheus-node-exporter-deploy")
     # Task 25: Jenkins Job - prometheus-asterisk-exporter-deploy
     parser.add_argument('--task_25_branch_prometheus_asterisk_exporter', default="master", help="Task 25: Jenkins Job - prometheus-asterisk-exporter-deploy")
+    # Task 26: Jenkins Job - ts_logs_uploader_deploy
+    parser.add_argument('--task_26_branch_ts_logs_uploader', default="master", help="Task 26: Jenkins Job - ts_logs_uploader_deploy")
 
     
 
@@ -117,7 +119,7 @@ def parse_args():
     parser.add_argument('--ssh_port', type=int, default=22000, help="SSH port")
     parser.add_argument('--sillyio_code', default="080_33", help="SILLYIO_CODE value")
     parser.add_argument('--task_start_number', type=int, default=1, help="Task number to start execution from (inclusive)")
-    parser.add_argument('--task_end_number', type=int, default=25, help="Task number to end execution at (inclusive)")
+    parser.add_argument('--task_end_number', type=int, default=26, help="Task number to end execution at (inclusive)")
 
     return parser.parse_args()
 
@@ -170,7 +172,8 @@ tasks_list = [
     {"Task": "Task 22", "Description": "Install Traffic-shaper 1-C7", "Status": "Pending"},
     {"Task": "Task 23", "Description": "Jenkins Job - prod-prometheus-process-exporter-deploy", "Status": "Pending"},
     {"Task": "Task 24", "Description": "Jenkins Job - prod-prometheus-node-exporter-deploy", "Status": "Pending"},
-    {"Task": "Task 25", "Description": "Jenkins Job - prometheus-asterisk-exporter-deploy", "Status": "Pending"}
+    {"Task": "Task 25", "Description": "Jenkins Job - prometheus-asterisk-exporter-deploy", "Status": "Pending"},
+    {"Task": "Task 26", "Description": "Jenkins Job - ts_logs_uploader_deploy", "Status": "Pending"}
 ]
 
 
@@ -1595,6 +1598,48 @@ def task_25():
         tasks_list[24]["Status"] = "FAILED"
         return False, None
 
+def task_26():
+    print("\n\n============================ Task 26 ============================\n\n")
+    """Execute Jenkins Job - ts_logs_uploader_deploy"""
+    task_name = "Task 26"
+    start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    log_output("Starting Jenkins Job - ts_logs_uploader_deploy", task_name)
+    tasks_list[25]["Status"] = "Running"
+    
+    try:
+        JOB_NAME = "ts_logs_uploader_deploy"
+        
+        parameter_list = {
+            "GIT_BRANCH": branch_ts_logs_uploader,
+            "HOSTS": HOST
+        }
+        
+        result, _, build_url = jenkins_job_trigger(parameter_list, JOB_NAME)
+        log_output("Jenkins job result: {}".format(result), task_name)
+        
+        # Store build URL in tasks_list
+        if build_url:
+            tasks_list[25]["BuildURL"] = build_url
+            log_output("Build URL: {}".format(build_url), task_name)
+        
+        end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        duration = str(datetime.now() - datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S"))
+        if result == "SUCCESS":
+            tasks_list[25]["Status"] = "SUCCESS"
+        elif result == "ABORTED":
+            tasks_list[25]["Status"] = "ABORTED"
+        else:
+            tasks_list[25]["Status"] = "FAILED"
+        return result == "SUCCESS", build_url
+        
+    except Exception as e:
+        log_output("Error: {}".format(e), task_name, "ERROR")
+        end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        duration = str(datetime.now() - datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S"))
+        tasks_list[25]["Status"] = "FAILED"
+        return False, None
+
 # Main execution function
 def main():
     """Main function to execute tasks"""
@@ -1606,6 +1651,7 @@ def main():
     global branch_adhearsion, branch_firefoot_ts, branch_amix, branch_eventshipper, branch_rsyslog, branch_causix, branch_causixenqueuer
     global branch_route_switcher, branch_voipmonitor, branch_fangorn, branch_traffic_shaper
     global branch_prometheus_process_exporter, branch_prometheus_node_exporter, branch_prometheus_asterisk_exporter
+    global branch_ts_logs_uploader  # Add this line
 
     global HOST, global_username, global_password, port, JENKINS_URL, USERNAME, API_TOKEN, SILLYIO_CODE, global_key_file
 
@@ -1641,6 +1687,7 @@ def main():
     branch_prometheus_process_exporter = args.task_23_branch_prometheus_process_exporter
     branch_prometheus_node_exporter = args.task_24_branch_prometheus_node_exporter
     branch_prometheus_asterisk_exporter = args.task_25_branch_prometheus_asterisk_exporter
+    branch_ts_logs_uploader = args.task_26_branch_ts_logs_uploader
 
     log_output("Starting task execution", "MAIN")
     

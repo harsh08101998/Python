@@ -88,20 +88,31 @@ def task_user_verification(args, command_statuses):
 def task_ssh_configs(args, command_statuses):
     print_note("SSH Configs: Check .ssh directories and authorized_keys for asterisk and exomon")
     for user in ["asterisk", "exomon"]:
-        cmd = f"ls -la /home/{user}/.ssh"
+        cmd = f"sudo ls -la /home/{user}/.ssh"
         success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
-        if "No such file or directory" in out or "No such file or directory" in err:
+        
+        if not success:
+            print(f"❌ Failed to check .ssh directory for {user}")
+            print(f"Error: {err}")
+            command_statuses.append((cmd, False, f"Failed to check .ssh directory for {user}: {err}"))
+        elif "No such file or directory" in out or "No such file or directory" in err:
             print(f"❌ .ssh directory missing for {user}")
             command_statuses.append((cmd, False, f".ssh directory missing for {user}"))
         else:
             print(f"✅ .ssh directory exists for {user}")
             print(out)
             command_statuses.append((cmd, True, f".ssh directory exists for {user}"))
+    
     # Check for authorized_keys entries
     for key in ["exotel@prod-build-node", "exotel@Cron-Machine2"]:
         cmd = f'grep "{key}" /home/asterisk/.ssh/authorized_keys'
         success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
-        if out.strip():
+        
+        if not success:
+            print(f"❌ Failed to check authorized_keys for {key}")
+            print(f"Error: {err}")
+            command_statuses.append((cmd, False, f"Failed to check authorized_keys for {key}: {err}"))
+        elif out.strip():
             print(f"✅ {key} found in authorized_keys")
             command_statuses.append((cmd, True, f"{key} found in authorized_keys"))
         else:
@@ -110,8 +121,15 @@ def task_ssh_configs(args, command_statuses):
 
 def task_bash_configs(args, command_statuses):
     print_note("Bash Configs: Check for bash config/history files in /home/asterisk/")
-    cmd = "ls -la /home/asterisk/"
+    cmd = "sudo ls -la /home/asterisk/"
     success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
+    
+    if not success:
+        print("❌ Failed to check bash config files")
+        print(f"Error: {err}")
+        command_statuses.append((cmd, False, f"Failed to check bash config files: {err}"))
+        return
+    
     required_files = [".bashrc", ".bash_profile", ".bash_history", ".bash_logout"]
     for f in required_files:
         if f in out:
@@ -263,9 +281,15 @@ def task7_check_iptables(args, command_statuses):
     print_note("Task 7: Check iptables rules")
     cmd = "sudo iptables -L -n"
     success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
-    print(out)
-    # Add logic to check for required rules
-    command_statuses.append((cmd, True, "Checked iptables rules"))
+    
+    if success:
+        print("✅ iptables rules checked successfully")
+        print(out)
+        command_statuses.append((cmd, True, "Checked iptables rules"))
+    else:
+        print("❌ Failed to check iptables rules")
+        print(f"Error: {err}")
+        command_statuses.append((cmd, False, f"Failed to check iptables rules: {err}"))
 
 def task8_logrotate_configs(args, command_statuses):
     print_note("Task 8: Check logrotate configs")
@@ -285,27 +309,37 @@ def task10_squid_status(args, command_statuses):
     print_note("Task 10: Squid status")
     cmds = [
         "sudo service squid status",
-        "squid -v"
+        "/usr/sbin/squid -v"
     ]
-    for cmd in cmds:
+    for i, cmd in enumerate(cmds):
         success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
-        print(out)
-    # Add logic to check version and status
-    command_statuses.append((cmds[0], True, "Checked Squid status"))
-    command_statuses.append((cmds[1], True, "Checked Squid version"))
+        
+        if success:
+            print(f"✅ {cmd}")
+            print(out)
+            command_statuses.append((cmd, True, "Checked Squid status"))
+        else:
+            print(f"❌ {cmd}")
+            print(f"Error: {err}")
+            command_statuses.append((cmd, False, f"Squid status check failed: {err}"))
 
 def task11_haproxy_status(args, command_statuses):
     print_note("Task 11: HAProxy status")
     cmds = [
         "sudo service haproxy status",
-        "haproxy -v"
+        "/usr/local/sbin/haproxy -v"
     ]
-    for cmd in cmds:
+    for i, cmd in enumerate(cmds):
         success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
-        print(out)
-    # Add logic to check version and status
-    command_statuses.append((cmds[0], True, "Checked HAProxy status"))
-    command_statuses.append((cmds[1], True, "Checked HAProxy version"))
+        
+        if success:
+            print(f"✅ {cmd}")
+            print(out)
+            command_statuses.append((cmd, True, "Checked HAProxy status"))
+        else:
+            print(f"❌ {cmd}")
+            print(f"Error: {err}")
+            command_statuses.append((cmd, False, f"HAProxy status check failed: {err}"))
 
 def task12_check_recording_status(args, command_statuses):
     print_note("Task 12: Verifying recording status in exotelcalls DB")
@@ -507,6 +541,642 @@ def task_sillyio_config_verification(args, command_statuses):
         print("❌ conference_master is NOT present in sillyio config")
         command_statuses.append((conf_cmd, False, "conference_master is NOT present in sillyio config"))
 
+def task_squid_config_validation(args, command_statuses):
+    print_note("Squid Configuration Validation: tcp_outgoing_address vs Ethernet Interfaces")
+    
+    # 1. Get all ethernet interfaces (em1, em2, em3, em4)
+    iface_cmd = "ls /sys/class/net | grep -E '^em[1-4]$'"
+    success, iface_out, iface_err, iface_rc = run_remote_cmd(
+        args.ssh_host, args.ssh_user, args.ssh_key, iface_cmd, args.ssh_port
+    )
+    
+    if not iface_out.strip():
+        print("❌ No ethernet interfaces (em1-em4) found")
+        command_statuses.append((iface_cmd, False, "No ethernet interfaces (em1-em4) found"))
+        return
+    
+    ethernet_interfaces = [line.strip() for line in iface_out.splitlines() if line.strip()]
+    print(f"Found ethernet interfaces: {', '.join(ethernet_interfaces)}")
+    
+    # 2. Get IP addresses for each ethernet interface
+    interface_ips = {}
+    for iface in ethernet_interfaces:
+        ip_cmd = f"ip addr show {iface} | grep 'inet ' | awk '{{print $2}}' | cut -d'/' -f1"
+        success, ip_out, ip_err, ip_rc = run_remote_cmd(
+            args.ssh_host, args.ssh_user, args.ssh_key, ip_cmd, args.ssh_port
+        )
+        if ip_out.strip():
+            interface_ips[iface] = ip_out.strip()
+            print(f"✅ {iface}: {ip_out.strip()}")
+        else:
+            print(f"❌ {iface}: No IP address found")
+            command_statuses.append((ip_cmd, False, f"{iface}: No IP address found"))
+    
+    # 3. Check tcp_outgoing_address in squid.conf
+    squid_cmd = "sudo grep tcp_outgoing_address /etc/squid/squid.conf"
+    success, squid_out, squid_err, squid_rc = run_remote_cmd(
+        args.ssh_host, args.ssh_user, args.ssh_key, squid_cmd, args.ssh_port
+    )
+    
+    if not squid_out.strip():
+        print("❌ No tcp_outgoing_address entries found in squid.conf")
+        command_statuses.append((squid_cmd, False, "No tcp_outgoing_address entries found in squid.conf"))
+        return
+    
+    print("Squid tcp_outgoing_address entries:")
+    print(squid_out)
+    
+    # 4. Validate that all interface IPs are configured in squid
+    configured_ips = set()
+    for line in squid_out.splitlines():
+        if "tcp_outgoing_address" in line:
+            # Extract IP from line like: tcp_outgoing_address 192.168.1.10 ip1
+            parts = line.strip().split()
+            if len(parts) >= 2:
+                configured_ips.add(parts[1])
+    
+    missing_ips = []
+    for iface, ip in interface_ips.items():
+        if ip not in configured_ips:
+            print(f"❌ {iface} IP ({ip}) is missing in squid tcp_outgoing_address")
+            command_statuses.append((squid_cmd, False, f"{iface} IP ({ip}) is missing in squid tcp_outgoing_address"))
+            missing_ips.append(f"{iface}:{ip}")
+        else:
+            print(f"✅ {iface} IP ({ip}) is configured in squid tcp_outgoing_address")
+            command_statuses.append((squid_cmd, True, f"{iface} IP ({ip}) is configured in squid tcp_outgoing_address"))
+    
+    if missing_ips:
+        print(f"\nMissing IPs in squid configuration: {', '.join(missing_ips)}")
+    else:
+        print("✅ All ethernet interface IPs are configured in squid tcp_outgoing_address")
+
+def task_squid_comprehensive_validation(args, command_statuses):
+    print_note("Comprehensive Squid Validation: Version, Configuration & Proxy Testing")
+    
+    # 1. Check Squid version
+    version_cmd = "/usr/sbin/squid -v"
+    success, version_out, version_err, version_rc = run_remote_cmd(
+        args.ssh_host, args.ssh_user, args.ssh_key, version_cmd, args.ssh_port
+    )
+    expected_version = "3.5.28"
+    if expected_version in version_out:
+        print(f"✅ Squid version is correct: {expected_version}")
+        command_statuses.append((version_cmd, True, f"Squid version is correct: {expected_version}"))
+    else:
+        print(f"❌ Squid version mismatch. Expected: {expected_version}, Got: {version_out}")
+        command_statuses.append((version_cmd, False, f"Squid version mismatch. Expected: {expected_version}, Got: {version_out}"))
+    
+    # 2. Check Squid service status
+    status_cmd = "sudo service squid status"
+    success, status_out, status_err, status_rc = run_remote_cmd(
+        args.ssh_host, args.ssh_user, args.ssh_key, status_cmd, args.ssh_port
+    )
+    print(f"Command: {status_cmd}")
+    if not success:
+        print("❌ Failed to check Squid service status")
+        print(f"Error: {status_err}")
+        command_statuses.append((status_cmd, False, f"Squid service status check failed: {status_err}"))
+        return  # Exit early if SSH fails
+    else:
+        print(f"Output: {status_out}")
+        if "running" in status_out.lower() or "active" in status_out.lower():
+            print("✅ Squid service is running")
+            command_statuses.append((status_cmd, True, "Squid service is running"))
+        else:
+            print("❌ Squid service is not running")
+            command_statuses.append((status_cmd, False, "Squid service is not running"))
+    
+    # 3. Enhanced squid configuration validation
+    config_validation_cmd = (
+        'echo ""; /usr/sbin/squid -v | grep -i "Version"; echo ""; '
+        '/usr/local/sbin/haproxy -v | grep -i "Version"; echo ""; '
+        'cat /home/asterisk/adhearsion/adhearsion/sillyio/components/sillyio/sillyio.yml | grep -i "proxy_url\\|http://localhost"; echo ""; '
+        'cat /etc/haproxy/haproxy.cfg | grep -i "check fall"; echo ""; '
+        'sudo cat /etc/squid/squid.conf | grep -i "acl ip\\|tcp_outgoing_ad\\|http_port"'
+    )
+    success, config_out, config_err, config_rc = run_remote_cmd(
+        args.ssh_host, args.ssh_user, args.ssh_key, config_validation_cmd, args.ssh_port
+    )
+    
+    if success:
+        print("✅ Squid/HAProxy configuration summary checked successfully")
+        print("Squid/HAProxy Configuration Summary:")
+        print(config_out)
+        command_statuses.append((config_validation_cmd, True, "Checked squid/haproxy configuration summary"))
+    else:
+        print("❌ Failed to check Squid/HAProxy configuration summary")
+        print(f"Error: {config_err}")
+        command_statuses.append((config_validation_cmd, False, f"Failed to check squid/haproxy configuration summary: {config_err}"))
+    
+    # 4. Comprehensive proxy testing - Updated validation logic
+    proxy_tests = [
+        "curl -v http://localhost:5000/healthcheck",
+        "curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23451' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'",
+        "curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23452' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'",
+        "curl --request GET --proxy 'http://127.0.0.1:23432' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'",
+        "curl --request GET --proxy 'http://127.0.0.1:23433' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'"
+    ]
+    
+    working_responses = 0
+    for cmd in proxy_tests:
+        success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
+        
+        # Updated validation logic for different response types
+        is_success = False
+        if "healthcheck" in cmd:
+            # For healthcheck endpoint, look for success message
+            if '"success":true' in out or "All cool here" in out:
+                is_success = True
+        else:
+            # For other proxy tests, look for Working status or HTTP 200
+            if '"status": "Working"' in out or "200" in out or rc == 0:
+                is_success = True
+        
+        if is_success:
+            print(f"✅ Proxy test succeeded: {cmd[:50]}...")
+            command_statuses.append((cmd, True, "Proxy test succeeded"))
+            working_responses += 1
+        else:
+            print(f"❌ Proxy test failed: {cmd[:50]}...")
+            print(f"Response: {out[:100]}...")
+            command_statuses.append((cmd, False, "Proxy test failed"))
+    
+    print(f"\nProxy Test Summary: {working_responses}/{len(proxy_tests)} tests passed")
+    
+    # Expected output validation
+    if working_responses >= len(proxy_tests) - 1:  # Allow 1 failure
+        print('✅ Expected output: Multiple {"status": "Working"} responses received')
+        command_statuses.append(("proxy_summary", True, f"Proxy tests passed: {working_responses}/{len(proxy_tests)}"))
+    else:
+        print(f'❌ Expected multiple {{"status": "Working"}} responses, got {working_responses}')
+        command_statuses.append(("proxy_summary", False, f"Insufficient proxy tests passed: {working_responses}/{len(proxy_tests)}"))
+
+def task_squid_detailed_status_validation(args, command_statuses):
+    print_note("Detailed Squid Status Validation (CSV Requirements)")
+    
+    # Step 1: Check squid service status
+    print("Step 1: Checking Squid Service Status")
+    status_cmd = "sudo service squid status"
+    success, status_out, status_err, status_rc = run_remote_cmd(
+        args.ssh_host, args.ssh_user, args.ssh_key, status_cmd, args.ssh_port
+    )
+    print(f"Command: {status_cmd}")
+    print(f"Output: {status_out}")
+    if "running" in status_out.lower() or "active" in status_out.lower():
+        print("✅ Squid service is running")
+        command_statuses.append((status_cmd, True, "Squid service is running"))
+    else:
+        print("❌ Squid service is not running")
+        command_statuses.append((status_cmd, False, "Squid service is not running"))
+    
+    # Step 2: Check squid version
+    print("\nStep 2: Checking Squid Version")
+    version_cmd = "/usr/sbin/squid -v"
+    success, version_out, version_err, version_rc = run_remote_cmd(
+        args.ssh_host, args.ssh_user, args.ssh_key, version_cmd, args.ssh_port
+    )
+    print(f"Command: {version_cmd}")
+    print(f"Output: {version_out}")
+    
+    expected_version = "Squid Cache: Version 3.5.28"
+    if "3.5.28" in version_out:
+        print("✅ Squid version is correct: 3.5.28")
+        command_statuses.append((version_cmd, True, "Squid version is correct: 3.5.28"))
+    else:
+        print(f"❌ Squid version mismatch. Expected: 3.5.28, Got: {version_out}")
+        command_statuses.append((version_cmd, False, f"Squid version mismatch. Expected: 3.5.28"))
+    
+    # Step 3: Comprehensive configuration validation command
+    print("\nStep 3: Comprehensive Configuration Validation")
+    comprehensive_cmd = (
+        'echo ""; /usr/sbin/squid -v | grep -i "Version"; echo ""; '
+        '/usr/local/sbin/haproxy -v | grep -i "Version"; echo ""; '
+        'cat /home/asterisk/adhearsion/adhearsion/sillyio/components/sillyio/sillyio.yml | grep -i "proxy_url\\|http://localhost"; echo ""; '
+        'cat /etc/haproxy/haproxy.cfg | grep -i "check fall"; echo ""; '
+        'sudo cat /etc/squid/squid.conf | grep -i "acl ip\\|tcp_outgoing_ad\\|http_port"'
+    )
+    
+    success, comprehensive_out, comprehensive_err, comprehensive_rc = run_remote_cmd(
+        args.ssh_host, args.ssh_user, args.ssh_key, comprehensive_cmd, args.ssh_port
+    )
+    
+    print("Comprehensive Configuration Output:")
+    print("=" * 80)
+    print(comprehensive_out)
+    print("=" * 80)
+    
+    # Validate specific components in the output
+    validation_checks = [
+        ("Squid Version", "3.5.28", "✅ Squid version found in output"),
+        ("HAProxy Version", "2.4.2", "✅ HAProxy version found in output"),
+        ("Proxy URL", "http://localhost:23432", "✅ Proxy URL configuration found"),
+        ("Check Fall Config", "check fall", "✅ HAProxy check fall configuration found"),
+        ("ACL IP Config", "acl ip", "✅ Squid ACL IP configuration found"),
+        ("TCP Outgoing Address", "tcp_outgoing_address", "✅ TCP outgoing address configuration found"),
+        ("HTTP Port Config", "http_port", "✅ HTTP port configuration found")
+    ]
+    
+    passed_checks = []
+    failed_checks = []
+    
+    for check_name, search_term, success_msg in validation_checks:
+        if search_term.lower() in comprehensive_out.lower():
+            print(success_msg)
+            passed_checks.append(check_name)
+        else:
+            error_msg = f"❌ {check_name} configuration not found"
+            print(error_msg)
+            failed_checks.append(check_name)
+    
+    # Record the command only once with summary
+    summary = f"Comprehensive validation - Passed: {len(passed_checks)}, Failed: {len(failed_checks)}"
+    overall_success = len(failed_checks) == 0
+    command_statuses.append((comprehensive_cmd, overall_success, summary))
+
+    # Additional validation for ILL IPs configuration
+    print("\nValidating ILL IPs Configuration:")
+    
+    # Check for expected patterns
+    if "acl ip1 myport" in comprehensive_out and "acl ip2 myport" in comprehensive_out:
+        print("✅ ACL IP port configurations found")
+    else:
+        print("❌ ACL IP port configurations missing")
+    
+    # Count tcp_outgoing_address entries
+    tcp_outgoing_count = comprehensive_out.lower().count("tcp_outgoing_address")
+    if tcp_outgoing_count >= 3:
+        print(f"✅ Found {tcp_outgoing_count} tcp_outgoing_address entries (minimum 3 for 3 ILLs)")
+    else:
+        print(f"❌ Only found {tcp_outgoing_count} tcp_outgoing_address entries (expected minimum 3)")
+    
+    # Count http_port entries
+    http_port_count = comprehensive_out.lower().count("http_port")
+    if http_port_count >= 3:
+        print(f"✅ Found {http_port_count} http_port entries (minimum 3 for 3 ILLs)")
+    else:
+        print(f"❌ Only found {http_port_count} http_port entries (expected minimum 3)")
+
+def task_squid_proxy_working_validation(args, command_statuses):
+    print_note("Squid Proxy Working Status Validation (Expected 5 Working Responses)")
+    
+    # Test commands for 3 ILL configuration (from CSV)
+    proxy_test_commands = [
+        "curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23451' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'",
+        "curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23452' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'",
+        "curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23453' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'",
+        "curl --request GET --proxy 'http://127.0.0.1:23432' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'",
+        "curl --request GET --proxy 'http://127.0.0.1:23433' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'"
+    ]
+    
+    working_responses = []
+    failed_responses = []
+    
+    for i, cmd in enumerate(proxy_test_commands, 1):
+        print(f"\nTesting Proxy {i}/5:")
+        success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
+        
+        # Check for expected "Working" response
+        if '"status": "Working"' in out or "200" in out or '"success":true' in out:
+            print(f"✅ Proxy test {i} succeeded - Got 'Working' response")
+            working_responses.append(i)
+            command_statuses.append((f"proxy_test_{i}", True, f"Proxy test {i} succeeded"))
+        else:
+            print(f"❌ Proxy test {i} failed - Expected 'Working' response")
+            print(f"Response: {out[:200]}...")
+            failed_responses.append(i)
+            command_statuses.append((f"proxy_test_{i}", False, f"Proxy test {i} failed"))
+    
+    # Summary validation
+    print(f"\n{'='*60}")
+    print("PROXY TEST SUMMARY")
+    print(f"{'='*60}")
+    print(f"Working Responses: {len(working_responses)}/5")
+    print(f"Failed Responses: {len(failed_responses)}/5")
+    
+    # Expected output validation (from CSV: 5 Working responses for 3 ILL setup)
+    if len(working_responses) == 5:
+        print('✅ SUCCESS: All 5 proxy tests returned {"status": "Working"}')
+        print("Expected output achieved:")
+        for i in range(5):
+            print('{"status": "Working"}')
+        command_statuses.append(("proxy_summary", True, "All 5 proxy tests succeeded"))
+    elif len(working_responses) >= 3:
+        print(f'⚠️  PARTIAL SUCCESS: {len(working_responses)}/5 proxy tests working (minimum 3 for basic functionality)')
+        command_statuses.append(("proxy_summary", True, f"Partial success: {len(working_responses)}/5 proxy tests working"))
+    else:
+        print(f'❌ FAILURE: Only {len(working_responses)}/5 proxy tests working (insufficient for operation)')
+        command_statuses.append(("proxy_summary", False, f"Insufficient proxy tests working: {len(working_responses)}/5"))
+
+def task_haproxy_detailed_status_validation(args, command_statuses):
+    print_note("Detailed HAProxy Status Validation (CSV Requirements)")
+    
+    # Step 1: Check HAProxy service status
+    print("Step 1: Checking HAProxy Service Status")
+    status_cmd = "sudo service haproxy status"
+    success, status_out, status_err, status_rc = run_remote_cmd(
+        args.ssh_host, args.ssh_user, args.ssh_key, status_cmd, args.ssh_port
+    )
+    print(f"Command: {status_cmd}")
+    if not success:
+        print("❌ Failed to check HAProxy service status")
+        print(f"Error: {status_err}")
+        command_statuses.append((status_cmd, False, f"HAProxy service status check failed: {status_err}"))
+        return  # Exit early if SSH fails
+    else:
+        print(f"Output: {status_out}")
+        if "running" in status_out.lower() or "active" in status_out.lower():
+            print("✅ HAProxy service is running")
+            command_statuses.append((status_cmd, True, "HAProxy service is running"))
+        else:
+            print("❌ HAProxy service is not running")
+            command_statuses.append((status_cmd, False, "HAProxy service is not running"))
+    
+    # Step 2: Check HAProxy version
+    print("\nStep 2: Checking HAProxy Version")
+    version_cmd = "/usr/local/sbin/haproxy -v"
+    success, version_out, version_err, version_rc = run_remote_cmd(
+        args.ssh_host, args.ssh_user, args.ssh_key, version_cmd, args.ssh_port
+    )
+    print(f"Command: {version_cmd}")
+    print(f"Output: {version_out}")
+    
+    expected_version = "HAProxy version 2.4.2-553dee3 2021/07/07"
+    if "2.4.2-553dee3" in version_out and "2021/07/07" in version_out:
+        print("✅ HAProxy version is correct: 2.4.2-553dee3 2021/07/07")
+        command_statuses.append((version_cmd, True, "HAProxy version is correct: 2.4.2-553dee3 2021/07/07"))
+    else:
+        print(f"❌ HAProxy version mismatch. Expected: 2.4.2-553dee3 2021/07/07, Got: {version_out}")
+        command_statuses.append((version_cmd, False, f"HAProxy version mismatch. Expected: 2.4.2-553dee3 2021/07/07"))
+    
+    # Step 3a: Proxy testing for 2 ILL configuration
+    print("\nStep 3a: HAProxy Proxy Testing for 2 ILL Configuration")
+    proxy_tests_2ill = [
+        "curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23451' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'",
+        "curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23452' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'",
+        "curl --request GET --proxy 'http://127.0.0.1:23432' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'",
+        "curl --request GET --proxy 'http://127.0.0.1:23433' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'"
+    ]
+    
+    working_responses_2ill = 0
+    for i, cmd in enumerate(proxy_tests_2ill, 1):
+        print(f"\nTesting 2 ILL Proxy {i}/4:")
+        success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
+        
+        if '"status": "Working"' in out or "200" in out or '"success":true' in out:
+            print(f"✅ 2 ILL Proxy test {i} succeeded - Got 'Working' response")
+            working_responses_2ill += 1
+            command_statuses.append((f"2ill_proxy_test_{i}", True, f"2 ILL Proxy test {i} succeeded"))
+        else:
+            print(f"❌ 2 ILL Proxy test {i} failed - Expected 'Working' response")
+            print(f"Response: {out[:200]}...")
+            command_statuses.append((f"2ill_proxy_test_{i}", False, f"2 ILL Proxy test {i} failed"))
+    
+    print(f"\n2 ILL Proxy Test Summary: {working_responses_2ill}/4 tests passed")
+    if working_responses_2ill == 4:
+        print('✅ SUCCESS: All 4 proxy tests for 2 ILL returned {"status": "Working"}')
+        print("Expected 2 ILL output achieved:")
+        for i in range(4):
+            print('{"status": "Working"}')
+    
+    # Step 3b: Proxy testing for 3 ILL configuration
+    print("\nStep 3b: HAProxy Proxy Testing for 3 ILL Configuration")
+    proxy_tests_3ill = [
+        "curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23451' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'",
+        "curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23452' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'",
+        "curl -H 'Proxy-Authorization: Basic aXAyXzB1dGMwbm4zY3QyOnNxdWxkdHcwM3gwdGUxX2lwMg==' --request GET --proxy 'http://127.0.0.1:23453' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'",
+        "curl --request GET --proxy 'http://127.0.0.1:23432' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'",
+        "curl --request GET --proxy 'http://127.0.0.1:23433' 'https://run.mocky.io/v3/f39c73f6-7ab3-4fa6-a3b6-84b929786d7c'"
+    ]
+    
+    working_responses_3ill = 0
+    for i, cmd in enumerate(proxy_tests_3ill, 1):
+        print(f"\nTesting 3 ILL Proxy {i}/5:")
+        success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
+        
+        if '"status": "Working"' in out or "200" in out or '"success":true' in out:
+            print(f"✅ 3 ILL Proxy test {i} succeeded - Got 'Working' response")
+            working_responses_3ill += 1
+            command_statuses.append((f"3ill_proxy_test_{i}", True, f"3 ILL Proxy test {i} succeeded"))
+        else:
+            print(f"❌ 3 ILL Proxy test {i} failed - Expected 'Working' response")
+            print(f"Response: {out[:200]}...")
+            command_statuses.append((f"3ill_proxy_test_{i}", False, f"3 ILL Proxy test {i} failed"))
+    
+    print(f"\n3 ILL Proxy Test Summary: {working_responses_3ill}/5 tests passed")
+    if working_responses_3ill == 5:
+        print('✅ SUCCESS: All 5 proxy tests for 3 ILL returned {"status": "Working"}')
+        print("Expected 3 ILL output achieved:")
+        for i in range(5):
+            print('{"status": "Working"}')
+    
+    # Step 4: Validate HAProxy configuration logs
+    print("\nStep 4: Validating HAProxy Configuration")
+    config_cmd = "cat /etc/haproxy/haproxy.cfg"
+    success, config_out, config_err, config_rc = run_remote_cmd(
+        args.ssh_host, args.ssh_user, args.ssh_key, config_cmd, args.ssh_port
+    )
+    
+    print("HAProxy Configuration Summary:")
+    print("=" * 80)
+    # Print first 50 lines to avoid overwhelming output
+    config_lines = config_out.splitlines()
+    for i, line in enumerate(config_lines[:50]):
+        print(f"{i+1:3d}: {line}")
+    if len(config_lines) > 50:
+        print(f"... (showing first 50 lines of {len(config_lines)} total lines)")
+    print("=" * 80)
+    
+    # Validate specific HAProxy configuration elements
+    config_checks = [
+        ("check fall", "✅ HAProxy check fall configuration found"),
+        ("server local_squid", "✅ Local squid server configuration found"),
+        ("backup", "✅ Backup server configuration found"),
+        ("frontend", "✅ Frontend configuration found"),
+        ("backend", "✅ Backend configuration found")
+    ]
+    
+    for search_term, success_msg in config_checks:
+        if search_term.lower() in config_out.lower():
+            print(success_msg)
+            command_statuses.append((config_cmd, True, success_msg))
+        else:
+            error_msg = f"❌ {search_term} configuration not found"
+            print(error_msg)
+            command_statuses.append((config_cmd, False, error_msg))
+    
+    # Overall summary
+    print(f"\n{'='*60}")
+    print("HAPROXY VALIDATION SUMMARY")
+    print(f"{'='*60}")
+    print(f"Service Status: {'✅ Running' if 'running' in status_out.lower() or 'active' in status_out.lower() else '❌ Not Running'}")
+    print(f"Version Check: {'✅ Correct (2.4.2-553dee3)' if '2.4.2-553dee3' in version_out else '❌ Incorrect'}")
+    print(f"2 ILL Proxy Tests: {working_responses_2ill}/4 passed")
+    print(f"3 ILL Proxy Tests: {working_responses_3ill}/5 passed")
+    print(f"Configuration: {'✅ Valid' if 'check fall' in config_out.lower() else '❌ Issues detected'}")
+    
+    # Determine overall status
+    version_ok = "2.4.2-553dee3" in version_out
+    service_ok = "running" in status_out.lower() or "active" in status_out.lower()
+    config_ok = "check fall" in config_out.lower()
+    proxy_ok = working_responses_2ill >= 3 or working_responses_3ill >= 4  # Allow some flexibility
+    
+    if version_ok and service_ok and config_ok and proxy_ok:
+        print("🎉 OVERALL HAPROXY STATUS: ✅ PASSED")
+        command_statuses.append(("haproxy_overall", True, "HAProxy validation passed"))
+    else:
+        print("⚠️  OVERALL HAPROXY STATUS: ❌ FAILED")
+        command_statuses.append(("haproxy_overall", False, "HAProxy validation failed"))
+
+
+def task_haproxy_config_file_validation(args, command_statuses):
+    print_note("HAProxy Configuration File Detailed Validation")
+    
+    # Read and analyze the full HAProxy configuration
+    config_cmd = "cat /etc/haproxy/haproxy.cfg"
+    success, config_out, config_err, config_rc = run_remote_cmd(
+        args.ssh_host, args.ssh_user, args.ssh_key, config_cmd, args.ssh_port
+    )
+    
+    if not success or not config_out.strip():
+        print("❌ Failed to read HAProxy configuration file")
+        command_statuses.append((config_cmd, False, "Failed to read HAProxy configuration file"))
+        return
+    
+    print("Analyzing HAProxy Configuration File...")
+    
+    # Count and validate server configurations
+    server_count = config_out.lower().count("server ")
+    print(f"Found {server_count} server configurations")
+    
+    # Check for specific server types mentioned in CSV
+    local_squid_servers = config_out.lower().count("server local_squid")
+    backup_servers = config_out.lower().count("backup")
+    
+    print(f"Local squid servers: {local_squid_servers}")
+    print(f"Backup servers: {backup_servers}")
+    
+    # Validate expected patterns from CSV example
+    expected_patterns = [
+        ("server local_squid_ip1", "localhost:23451", "Local squid IP1 configuration"),
+        ("server local_squid_ip2", "localhost:23452", "Local squid IP2 configuration"), 
+        ("server local_squid_ip3", "localhost:23453", "Local squid IP3 configuration"),
+        ("check fall 2 rise 3", "", "Check fall 2 rise 3 configuration"),
+        ("check fall 1 rise 6", "", "Check fall 1 rise 6 backup configuration"),
+        ("inter ", "", "Inter check interval configuration"),
+        ("weight ", "", "Weight configuration")
+    ]
+    
+    print("\nValidating expected configuration patterns:")
+    for pattern, context, description in expected_patterns:
+        if pattern.lower() in config_out.lower():
+            print(f"✅ {description}")
+            command_statuses.append((config_cmd, True, description))
+        else:
+            print(f"❌ {description} - Pattern '{pattern}' not found")
+            command_statuses.append((config_cmd, False, f"{description} - Pattern '{pattern}' not found"))
+    
+    # Check for frontend/backend sections
+    frontend_count = config_out.lower().count("frontend")
+    backend_count = config_out.lower().count("backend")
+    
+    print(f"\nConfiguration sections:")
+    print(f"Frontend sections: {frontend_count}")
+    print(f"Backend sections: {backend_count}")
+    
+    if frontend_count > 0 and backend_count > 0:
+        print("✅ HAProxy has proper frontend and backend configuration")
+        command_statuses.append((config_cmd, True, "HAProxy has proper frontend and backend configuration"))
+    else:
+        print("❌ HAProxy missing frontend or backend configuration")
+        command_statuses.append((config_cmd, False, "HAProxy missing frontend or backend configuration"))
+
+def task_php_timezone_validation(args, command_statuses):
+    print_note("PHP Timezone Configuration Validation")
+    
+    # Check PHP timezone configuration
+    timezone_cmd = "cat /etc/php.ini | grep -i date.timezone"
+    success, timezone_out, timezone_err, timezone_rc = run_remote_cmd(
+        args.ssh_host, args.ssh_user, args.ssh_key, timezone_cmd, args.ssh_port
+    )
+    
+    print(f"Command: {timezone_cmd}")
+    print(f"Output: {timezone_out}")
+    
+    if not timezone_out.strip():
+        print("❌ No date.timezone configuration found in /etc/php.ini")
+        command_statuses.append((timezone_cmd, False, "No date.timezone configuration found in /etc/php.ini"))
+        return
+    
+    # Check if timezone is set to Asia/Calcutta
+    timezone_found = False
+    
+    for line in timezone_out.splitlines():
+        line = line.strip()
+        if 'date.timezone' in line.lower() and 'asia/calcutta' in line.lower():
+            timezone_found = True
+            print(f"✅ PHP timezone is correctly configured: {line}")
+            command_statuses.append((timezone_cmd, True, f"PHP timezone is correctly configured: {line}"))
+            break
+    
+    if not timezone_found:
+        print("❌ PHP timezone is not set to Asia/Calcutta")
+        print("Expected: date.timezone = \"Asia/Calcutta\"")
+        command_statuses.append((timezone_cmd, False, "PHP timezone is not set to Asia/Calcutta"))
+
+def print_manual_verification_checklist(args):
+    print("\n" + "="*80)
+    print("MANUAL VERIFICATION CHECKLIST")
+    print("="*80)
+    print("The following items need to be verified/completed manually:\n")
+    
+    # Extract server number for even/odd determination
+    server_name = args.ssh_host
+    try:
+        # Extract number from hostname (e.g., 080-33 -> 33)
+        server_number = int(server_name.split('-')[1].split('.')[0])
+        is_even = server_number % 2 == 0
+        cron_type = "EVEN" if is_even else "ODD"
+        cron_url = "https://build.corp.exotel.in:8080/job/ts_%20log_uploader_cron_even/" if is_even else "https://build.corp.exotel.in:8080/job/ts_logs_uploader_cron_odd/"
+    except:
+        cron_type = "UNKNOWN (check server number)"
+        cron_url = "https://build.corp.exotel.in:8080/job/ts_%20log_uploader_cron_even/ OR https://build.corp.exotel.in:8080/job/ts_logs_uploader_cron_odd/"
+    
+    print(f"1. 📝 ADD HOSTNAME TO CRON JOBS")
+    print(f"   Server: {server_name} ({cron_type} server)")
+    print(f"   Action: Add hostname '{server_name}' to the appropriate cron job:")
+    print(f"   URL: {cron_url}")
+    print(f"   Note: Add EVEN number servers to 'ts_%20log_uploader_cron_even'")
+    print(f"         Add ODD number servers to 'ts_logs_uploader_cron_odd'")
+    print(f"   This cron job uploads logs using the script deployed in step 3.\n")
+    
+    print(f"2. 🌐 ILLs WHITELISTED IN CLOUD SECURITY GROUPS")
+    print(f"   Action: Ensure all ILL IPs for server '{server_name}' are whitelisted")
+    print(f"   Check: Cloud security groups configuration")
+    print(f"   Verify: All outbound ILL traffic is allowed\n")
+    
+    print(f"3. 🔧 UPDATE IAX.CONF MASTER/SLAVE CONFIGURATION")
+    print(f"   Action: Update master/slave configuration in IAX.conf")
+    print(f"   File: /etc/asterisk/iax.conf")
+    print(f"   Check: Proper master/slave relationship configured")
+    print(f"   Verify: IAX trunk configuration is correct\n")
+    
+    print(f"4. 🧪 COMPREHENSIVE CALL TESTING")
+    print(f"   Perform the following tests on server '{server_name}':")
+    print(f"   ✓ Test Call - Make inbound and outbound test calls")
+    print(f"   ✓ CDR Entry - Verify call detail records are created")
+    print(f"   ✓ Uidstampmap Entry - Check UID stamp mapping entries")
+    print(f"   ✓ AMI Entry - Verify Asterisk Manager Interface events")
+    print(f"   ✓ Recording Upload - Check recordings are uploaded to S3")
+    print(f"   ✓ Recording Local File Deletion - Verify local files are cleaned up")
+    print(f"   ✓ Make OB Call - Test outbound calling functionality")
+    print(f"   ✓ Billing - Verify billing records are generated")
+    print(f"   ✓ Inbox - Check inbox/voicemail functionality\n")
+    
+    print("="*80)
+    print("IMPORTANT: Complete ALL manual verification steps before")
+    print("marking the server deployment as SUCCESSFUL!")
+    print("="*80)
+
 def main():
     parser = argparse.ArgumentParser(description="Merged Server Validation & Service Check Script")
     # parser.add_argument('--expected-hostname', required=True, help='Expected hostname for verification')
@@ -548,22 +1218,33 @@ def main():
     # Task 3: sillyio.yml ob_channel_threshold
     cmd = "less /home/asterisk/adhearsion/adhearsion/sillyio/components/sillyio/sillyio.yml | grep ob_channel_threshold"
     success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
-    if not success:
-        command_statuses.append((cmd, False, "sillyio.yml ob_channel_threshold not found"))
-    print(out)
-    if err:
-        print("STDERR:", err)
-    command_statuses.append((cmd, True, "Checked sillyio.yml ob_channel_threshold"))
+    
+    if success:
+        print("✅ sillyio.yml ob_channel_threshold checked successfully")
+        print(out)
+        command_statuses.append((cmd, True, "Checked sillyio.yml ob_channel_threshold"))
+    else:
+        print("❌ Failed to check sillyio.yml ob_channel_threshold")
+        print(f"Error: {err}")
+        command_statuses.append((cmd, False, f"sillyio.yml ob_channel_threshold check failed: {err}"))
+        if err:
+            print("STDERR:", err)
 
     # Task 4: Twilix SQL
     print_note("""Make sure the span and the pilot numbers match.
 In twilix small table, we store the span and pilot connected to the span. When an incoming call lands on a server, the appropriate span mappings on the server in sillyio.yml are 
 used to determine the operator and other information. If this span mapping is wrong bad things can happen. [add more info here]""")
     if args.ssh_host:
-        run_twilix_db_queries(args.ssh_host)
+        try:
+            run_twilix_db_queries(args.ssh_host)
+            print("✅ Twilix SQL queries completed successfully")
+            command_statuses.append(("Twilix SQL", True, "Twilix SQL completed"))
+        except Exception as e:
+            print(f"❌ Twilix SQL queries failed: {e}")
+            command_statuses.append(("Twilix SQL", False, f"Twilix SQL failed: {e}"))
     else:
-        print("No --twilix-server-code provided, skipping SQL.")
-    command_statuses.append(("Twilix SQL", True, "Twilix SQL completed"))
+        print("❌ No SSH host provided, skipping Twilix SQL")
+        command_statuses.append(("Twilix SQL", False, "No SSH host provided, skipping SQL"))
 
 
     # Task 5: Recording directory permissions
@@ -661,21 +1342,31 @@ used to determine the operator and other information. If this span mapping is wr
     # Task 9: NTPD status (already checked above, but included for completeness)
     cmd = "sudo systemctl status ntpd"
     success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
-    if not success:
-        command_statuses.append((cmd, False, "NTPD status check failed"))
-    print(out)
-    if err:
-        print("STDERR:", err)
-    command_statuses.append((cmd, True, "NTPD status checked"))
+    
+    if success:
+        print("✅ NTPD status checked successfully")
+        print(out)
+        command_statuses.append((cmd, True, "NTPD status checked"))
+    else:
+        print("❌ NTPD status check failed")
+        print(f"Error: {err}")
+        command_statuses.append((cmd, False, f"NTPD status check failed: {err}"))
+        if err:
+            print("STDERR:", err)
 
     cmd = "ntpstat"
     success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
-    if not success:
-        command_statuses.append((cmd, False, "NTPD status check failed"))
-    print(out)
-    if err:
-        print("STDERR:", err)
-    command_statuses.append((cmd, True, "NTPD status checked"))
+    
+    if success:
+        print("✅ ntpstat checked successfully")
+        print(out)
+        command_statuses.append((cmd, True, "ntpstat checked"))
+    else:
+        print("❌ ntpstat check failed")
+        print(f"Error: {err}")
+        command_statuses.append((cmd, False, f"ntpstat check failed: {err}"))
+        if err:
+            print("STDERR:", err)
 
     # Task 10: Check HAProxy & Squid logs
     print_note("these logs should not be empty")
@@ -719,64 +1410,95 @@ used to determine the operator and other information. If this span mapping is wr
     # Task 13: Adhearsion credentials
     cmd = "grep 'default_sid' /home/asterisk/adhearsion/adhearsion/sillyio/components/sillyio/sillyio.yml"
     success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
-    if 'default_sid' in out:
-        print("✅ Credentials start with default_sid")
-        command_statuses.append((cmd, True, "Credentials start with default_sid"))
+    
+    if success:
+        if 'default_sid' in out:
+            print("✅ Credentials start with default_sid")
+            command_statuses.append((cmd, True, "Credentials start with default_sid"))
+        else:
+            print("❌ Credentials do not start with default_sid or not found")
+            command_statuses.append((cmd, False, "Credentials do not start with default_sid or not found"))
     else:
-        print("❌ Credentials do not start with defaultts022 or not found")
-        command_statuses.append((cmd, False, "Credentials do not start with defaultts022 or not found"))
+        print("❌ Failed to check Adhearsion credentials")
+        print(f"Error: {err}")
+        command_statuses.append((cmd, False, f"Failed to check Adhearsion credentials: {err}"))
+        
     print_note("""if you found no creds and wrong credentials, Please generate it and source it in DB exotel_code/twilix/scripts/generateTSCreds.php
 E.G: php generateTSCreds.php 0229
 
 Commit it to code-base with new branch and make pull request to voice dri""")
-    command_statuses.append((cmd, True, "Checked Adhearsion credentials"))
 
     # Task 14: Hyperthreading check
     cmd = "lscpu | grep -i -E '^CPU\\(s\\):|core|socket'"
     success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
-    if not success:
-        command_statuses.append((cmd, False, "Hyperthreading check failed"))
-    print(out)
-    if err:
-        print("STDERR:", err)
-    command_statuses.append((cmd, True, "Checked Hyperthreading"))
+    
+    if success:
+        print("✅ Hyperthreading check (lscpu) completed successfully")
+        print(out)
+        command_statuses.append((cmd, True, "Checked Hyperthreading (lscpu)"))
+    else:
+        print("❌ Hyperthreading check (lscpu) failed")
+        print(f"Error: {err}")
+        command_statuses.append((cmd, False, f"Hyperthreading check (lscpu) failed: {err}"))
+        if err:
+            print("STDERR:", err)
 
     cmd = "grep -E 'cpu cores|siblings|physical id' /proc/cpuinfo | xargs -n 11 echo |sort |uniq"
     success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
-    if not success:
-        command_statuses.append((cmd, False, "Hyperthreading check failed"))
-    print(out)
-    if err:
-        print("STDERR:", err)
-    command_statuses.append((cmd, True, "Checked Hyperthreading"))
+    
+    if success:
+        print("✅ Hyperthreading check (cpuinfo) completed successfully")
+        print(out)
+        command_statuses.append((cmd, True, "Checked Hyperthreading (cpuinfo)"))
+    else:
+        print("❌ Hyperthreading check (cpuinfo) failed")
+        print(f"Error: {err}")
+        command_statuses.append((cmd, False, f"Hyperthreading check (cpuinfo) failed: {err}"))
+        if err:
+            print("STDERR:", err)
 
     cmd = "sudo dmidecode | grep Count"
     success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
-    if not success:
-        command_statuses.append((cmd, False, "Hyperthreading check failed"))
-    print(out)
-    if err:
-        print("STDERR:", err)
-    command_statuses.append((cmd, True, "Checked Hyperthreading"))
+    
+    if success:
+        print("✅ Hyperthreading check (dmidecode) completed successfully")
+        print(out)
+        command_statuses.append((cmd, True, "Checked Hyperthreading (dmidecode)"))
+    else:
+        print("❌ Hyperthreading check (dmidecode) failed")
+        print(f"Error: {err}")
+        command_statuses.append((cmd, False, f"Hyperthreading check (dmidecode) failed: {err}"))
+        if err:
+            print("STDERR:", err)
 
     # Task 15: sillyio config verification
     cmd = "grep s3_recording_bucket /home/asterisk/adhearsion/adhearsion/sillyio/components/sillyio/sillyio.yml"
     success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
-    if not success:
-        command_statuses.append((cmd, False, "sillyio config verification failed"))
-    print(out)
-    if err:
-        print("STDERR:", err)
-    command_statuses.append((cmd, True, "Checked sillyio config"))
+    
+    if success:
+        print("✅ sillyio s3_recording_bucket config checked successfully")
+        print(out)
+        command_statuses.append((cmd, True, "Checked sillyio s3_recording_bucket config"))
+    else:
+        print("❌ Failed to check sillyio s3_recording_bucket config")
+        print(f"Error: {err}")
+        command_statuses.append((cmd, False, f"sillyio s3_recording_bucket config check failed: {err}"))
+        if err:
+            print("STDERR:", err)
 
     cmd = "grep conference_master /home/asterisk/adhearsion/adhearsion/sillyio/components/sillyio/sillyio.yml"
     success, out, err, rc = run_remote_cmd(args.ssh_host, args.ssh_user, args.ssh_key, cmd, args.ssh_port)
-    if not success:
-        command_statuses.append((cmd, False, "sillyio config verification failed"))
-    print(out)
-    if err:
-        print("STDERR:", err)
-    command_statuses.append((cmd, True, "Checked sillyio config"))
+    
+    if success:
+        print("✅ sillyio conference_master config checked successfully")
+        print(out)
+        command_statuses.append((cmd, True, "Checked sillyio conference_master config"))
+    else:
+        print("❌ Failed to check sillyio conference_master config")
+        print(f"Error: {err}")
+        command_statuses.append((cmd, False, f"sillyio conference_master config check failed: {err}"))
+        if err:
+            print("STDERR:", err)
 
     # Task 16: SSH key verification
     for key in ["exotel@prod-build-node", "exotel@Cron-Machine2"]:
@@ -796,6 +1518,10 @@ Commit it to code-base with new branch and make pull request to voice dri""")
     task1_check_local_http_ports(args, command_statuses)
     task_verify_route_switcher_config(args, command_statuses)
     task_sillyio_config_verification(args, command_statuses)
+    task_squid_config_validation(args, command_statuses)
+    task_squid_comprehensive_validation(args, command_statuses)
+    task_squid_detailed_status_validation(args, command_statuses)
+    task_squid_proxy_working_validation(args, command_statuses)
     task2_check_ip_platform(args, command_statuses)
     task3_check_active_channel_script(args, command_statuses)
     task_verify_sbc_domains_in_hosts(args, command_statuses)
@@ -809,6 +1535,9 @@ Commit it to code-base with new branch and make pull request to voice dri""")
     task12_check_recording_status(args, command_statuses)
     task13_check_for_AMI_Events_status(args, command_statuses)
     task14_check_asterisk_srtp(args, command_statuses)
+    task_haproxy_detailed_status_validation(args, command_statuses)
+    task_haproxy_config_file_validation(args, command_statuses)
+    task_php_timezone_validation(args, command_statuses)
     
     
 
@@ -817,6 +1546,9 @@ Commit it to code-base with new branch and make pull request to voice dri""")
     for cmd, status, msg in command_statuses:
         mark = "✅" if status else "❌"
         print(f"{mark} {cmd}\n    {msg}")
+    
+    # Add the manual verification checklist
+    print_manual_verification_checklist(args)
 
 if __name__ == "__main__":
     main()
