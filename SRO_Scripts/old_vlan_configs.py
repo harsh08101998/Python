@@ -4,7 +4,7 @@ import re
 import paramiko
 import time
 
-# sudo python3 vlan_configs.py centos.pem asterisk 080-veeno-2.exotel.in 22000 ens256 10:192.168.10.123:airtel.sip.com 23:192.168.23.50:jio.sip.com
+# sudo python3 vlan_configs.py centos.pem asterisk 040-veeno-1.exotel.in 22000 ens256 10:192.168.10.123:airtel.sip.com 23:192.168.23.50:jio.sip.com
 
 def usage():
     print(f"Usage: {sys.argv[0]} <ssh-key> <ssh-user> <ssh-host> <ssh-port> <parent-interface> <vlan-id>:<ip-address>:<domain> [<vlan-id>:<ip-address>:<domain> ...]")
@@ -141,11 +141,11 @@ def add_iptables_rules_remote(ssh_client, domain, vlan_ip):
     """Add iptables rules for domain and VLAN IP on remote server"""
     
     # Check if domain rule already exists
-    check_domain_cmd = f"sudo iptables -L OUTPUT | grep '{domain}'"
+    check_domain_cmd = f"sudo iptables -L INPUT | grep '{domain}'"
     domain_exists, _, _ = run_remote_cmd(ssh_client, check_domain_cmd)
     
     if not domain_exists:
-        cmd1 = f"sudo iptables -A OUTPUT -d {domain} -j ACCEPT"
+        cmd1 = f"sudo iptables -A INPUT -s {domain} -j ACCEPT"
         success1, out1, err1 = run_remote_cmd(ssh_client, cmd1)
         if success1:
             print(f"✅ Added iptables rule for domain: {domain}")
@@ -155,11 +155,11 @@ def add_iptables_rules_remote(ssh_client, domain, vlan_ip):
         print(f"✅ Iptables rule for domain {domain} already exists, skipping")
     
     # Check if IP rule already exists
-    check_ip_cmd = f"sudo iptables -L OUTPUT | grep '{vlan_ip}'"
+    check_ip_cmd = f"sudo iptables -L INPUT | grep '{vlan_ip}'"
     ip_exists, _, _ = run_remote_cmd(ssh_client, check_ip_cmd)
     
     if not ip_exists:
-        cmd2 = f"sudo iptables -A OUTPUT -d {vlan_ip} -j ACCEPT"
+        cmd2 = f"sudo iptables -A INPUT -s {vlan_ip} -j ACCEPT"
         success2, out2, err2 = run_remote_cmd(ssh_client, cmd2)
         if success2:
             print(f"✅ Added iptables rule for IP: {vlan_ip}")
@@ -188,7 +188,7 @@ def save_and_restart_iptables_remote(ssh_client):
 def read_parent_interface_config(ssh_client, parent_if):
     """Read existing parent interface configuration"""
     # Read from: /etc/sysconfig/network-scripts/ens256
-    cfg_file = f"/etc/sysconfig/network-scripts/{parent_if}"
+    cfg_file = f"/etc/sysconfig/network-scripts/ifcfg-{parent_if}"
     
     # Read existing config
     success, content, err = run_remote_cmd(ssh_client, f"sudo cat {cfg_file} 2>/dev/null || echo ''")
@@ -533,10 +533,10 @@ def print_final_verification(ssh_client, interface_names, parent_if):
     else:
         print(f"❌ Failed to read route-switcher config: {err}")
     
-    # 3. Show iptables OUTPUT rules with line numbers
-    print("\n3. iptables OUTPUT rules:")
+    # 3. Show iptables INPUT rules with line numbers
+    print("\n3. iptables INPUT rules:")
     print("-" * 25)
-    success, out, err = get_file_content("sudo iptables -L OUTPUT --line-numbers")
+    success, out, err = get_file_content("sudo iptables -L INPUT --line-numbers")
     if success:
         print(out)
     else:
@@ -545,7 +545,7 @@ def print_final_verification(ssh_client, interface_names, parent_if):
     # 4. Show parent interface config
     print(f"\n4. Parent interface config ({parent_if}):")
     print("-" * 40)
-    success, out, err = get_file_content(f"cat /etc/sysconfig/network-scripts/{parent_if}")
+    success, out, err = get_file_content(f"cat /etc/sysconfig/network-scripts/ifcfg-{parent_if}")
     if success:
         print(out)
     else:
@@ -579,6 +579,221 @@ def print_final_verification(ssh_client, interface_names, parent_if):
     print("\n" + "=" * 70)
     print("🔍 VERIFICATION COMPLETE")
     print("=" * 70)
+
+def check_system_manufacturer(ssh_client):
+    """Check system manufacturer to determine configuration approach"""
+    cmd = "sudo dmidecode -s system-manufacturer"
+    success, out, err = run_remote_cmd(ssh_client, cmd)
+    
+    if success and out.strip():
+        manufacturer = out.strip().lower()
+        print(f"✅ System manufacturer: {out.strip()}")
+        is_vmware = 'vmware' in manufacturer
+        return is_vmware, manufacturer
+    else:
+        print(f"⚠️  Could not determine system manufacturer: {err}")
+        return False, "unknown"
+
+def create_parent_interface_config_vmware(ssh_client, parent_if):
+    """Create parent interface config for VMware environment"""
+    cfg_file = f"/etc/sysconfig/network-scripts/ifcfg-{parent_if}"
+    
+    # Check if parent interface config already exists
+    check_cmd = f"sudo test -f {cfg_file}"
+    exists, _, _ = run_remote_cmd(ssh_client, check_cmd)
+    
+    if exists:
+        print(f"✅ Parent interface config {cfg_file} already exists")
+        return True
+    
+    # Create VMware-specific parent interface config
+    config_content = """DEVICE=ens256
+BOOTPROTO=none
+ONBOOT=yes
+TYPE=Ethernet
+NM_CONTROLLED=no"""
+    
+    # Write config file
+    cmd = f"echo '{config_content}' | sudo tee {cfg_file}"
+    success, out, err = run_remote_cmd(ssh_client, cmd)
+    
+    if success:
+        print(f"✅ Created VMware parent interface config: {cfg_file}")
+        # Set proper permissions
+        chmod_cmd = f"sudo chmod 644 {cfg_file}"
+        run_remote_cmd(ssh_client, chmod_cmd)
+        return True
+    else:
+        print(f"❌ Failed to create parent interface config {cfg_file}: {err}")
+        return False
+
+def create_vlan_config_vmware(ssh_client, parent_if, vlan_id, ipaddr, gateway_ip):
+    """Create VLAN configuration file for VMware environment"""
+    vlan_if = f"{parent_if}.{vlan_id}"
+    cfg_file = f"/etc/sysconfig/network-scripts/ifcfg-{vlan_if}"
+    
+    # CHECK IF VLAN CONFIG ALREADY EXISTS
+    check_cmd = f"sudo test -f {cfg_file}"
+    exists, _, _ = run_remote_cmd(ssh_client, check_cmd)
+    
+    if exists:
+        # Check if interface is already up with correct IP
+        verify_cmd = f"ip addr show {vlan_if} | grep {ipaddr}"
+        ip_exists, ip_out, _ = run_remote_cmd(ssh_client, verify_cmd)
+        
+        if ip_exists and ipaddr in ip_out:
+            print(f"✅ VLAN interface {vlan_if} already exists with IP {ipaddr}, skipping creation")
+            return True
+        else:
+            print(f"⚠️  VLAN config {cfg_file} exists but IP differs, updating...")
+    
+    # Calculate netmask (assuming /24)
+    netmask = "255.255.255.0"
+    
+    # Create VMware-specific VLAN config
+    config_content = f"""DEVICE={vlan_if}
+BOOTPROTO=static
+ONBOOT=yes
+IPADDR={ipaddr}
+NETMASK={netmask}
+GATEWAY={gateway_ip}
+VLAN=yes
+DEFROUTE=no"""
+    
+    print(f"\n📝 VMware VLAN Configuration for {vlan_if}:")
+    print(f"     DEVICE={vlan_if}")
+    print(f"     IPADDR={ipaddr}")
+    print(f"     NETMASK={netmask}")
+    print(f"     GATEWAY={gateway_ip}")
+    print(f"     VLAN=yes")
+    print(f"     DEFROUTE=no")
+    print()  # Add empty line for better readability
+    
+    # Write config file
+    cmd = f"echo '{config_content}' | sudo tee {cfg_file}"
+    success, out, err = run_remote_cmd(ssh_client, cmd)
+    
+    if success:
+        print(f"✅ Created VMware VLAN config: {cfg_file}")
+        
+        # Set proper permissions
+        chmod_cmd = f"sudo chmod 644 {cfg_file}"
+        run_remote_cmd(ssh_client, chmod_cmd)
+        
+        # Load 8021q module if not loaded
+        modprobe_cmd = "sudo modprobe 8021q"
+        run_remote_cmd(ssh_client, modprobe_cmd)
+        
+        # Bring up the interface
+        ifup_cmd = f"nmcli con up {vlan_if}"
+        success_ifup, out_ifup, err_ifup = run_remote_cmd(ssh_client, ifup_cmd)
+        
+        if success_ifup:
+            print(f"✅ VLAN interface {vlan_if} brought up successfully")
+        else:
+            print(f"⚠️  Warning: Failed to bring up VLAN interface {vlan_if}: {err_ifup}")
+        
+        return True
+    else:
+        print(f"❌ Failed to create VLAN config {cfg_file}: {err}")
+        return False
+
+def create_vlan_config_bond(ssh_client, parent_if, vlan_id, ipaddr, gateway_ip, base_config):
+    """Create VLAN configuration file for bond interface (non-VMware)"""
+    vlan_if = f"{parent_if}.{vlan_id}"
+    cfg_file = f"/etc/sysconfig/network-scripts/ifcfg-{vlan_if}"
+    
+    # CHECK IF VLAN CONFIG ALREADY EXISTS
+    check_cmd = f"sudo test -f {cfg_file}"
+    exists, _, _ = run_remote_cmd(ssh_client, check_cmd)
+    
+    if exists:
+        verify_cmd = f"ip addr show {vlan_if} | grep {ipaddr}"
+        ip_exists, ip_out, _ = run_remote_cmd(ssh_client, verify_cmd)
+        
+        if ip_exists and ipaddr in ip_out:
+            print(f"✅ VLAN interface {vlan_if} already exists with IP {ipaddr}, skipping creation")
+            return True
+        else:
+            print(f"⚠️  VLAN config {cfg_file} exists but IP differs, updating...")
+    
+    # Calculate network address (assuming /24)
+    octets = ipaddr.split('.')
+    network_addr = f"{octets[0]}.{octets[1]}.{octets[2]}.0"
+    netmask = "255.255.255.0"
+    
+    # Create bond-specific VLAN config
+    config_content = f"""DEVICE={vlan_if}
+NAME={vlan_if}
+IPADDR={ipaddr}
+NETWORK={network_addr}
+NETMASK={netmask}
+USERCTL=no
+BOOTPROTO=none
+ONBOOT=yes
+VLAN=yes
+ETHTOOL_OPTS="speed 1000 duplex full autoneg on"
+NM_CONTROLLED=no"""
+    
+    print(f"\n📝 Bond VLAN Configuration for {vlan_if}:")
+    print(f"     DEVICE={vlan_if}")
+    print(f"     IPADDR={ipaddr}")
+    print(f"     NETWORK={network_addr}")
+    print(f"     NETMASK={netmask}")
+    print(f"     VLAN=yes")
+    print()  # Add empty line for better readability
+    
+    # Write config file
+    cmd = f"echo '{config_content}' | sudo tee {cfg_file}"
+    success, out, err = run_remote_cmd(ssh_client, cmd)
+    
+    if success:
+        print(f"✅ Created Bond VLAN config: {cfg_file}")
+        
+        # Set proper permissions
+        chmod_cmd = f"sudo chmod 644 {cfg_file}"
+        run_remote_cmd(ssh_client, chmod_cmd)
+        
+        # Load 8021q module if not loaded
+        modprobe_cmd = "sudo modprobe 8021q"
+        run_remote_cmd(ssh_client, modprobe_cmd)
+        
+        # Bring up the interface
+        ifup_cmd = f"nmcli con up {vlan_if}"
+        success_ifup, out_ifup, err_ifup = run_remote_cmd(ssh_client, ifup_cmd)
+        
+        if success_ifup:
+            print(f"✅ VLAN interface {vlan_if} brought up successfully")
+        else:
+            print(f"⚠️  Warning: Failed to bring up VLAN interface {vlan_if}: {err_ifup}")
+        
+        return True
+    else:
+        print(f"❌ Failed to create VLAN config {cfg_file}: {err}")
+        return False
+
+def get_base_interface_for_non_vmware(ssh_client):
+    """Get base interface configuration for non-VMware systems"""
+    print("\n🔍 Non-VMware system detected. Please provide the base interface name.")
+    print("Common examples: bond0, ens192, eth0")
+    
+    # Try to detect available interfaces
+    cmd = "ls /etc/sysconfig/network-scripts/ifcfg-* | grep -E '(bond|eth|ens)' | head -5"
+    success, out, err = run_remote_cmd(ssh_client, cmd)
+    
+    if success and out.strip():
+        print("Available interface configs found:")
+        for line in out.strip().split('\n'):
+            interface_name = line.split('ifcfg-')[-1]
+            print(f"  - {interface_name}")
+    
+    # For now, return bond0 as default - in real implementation you'd want user input
+    base_interface = "bond0"
+    print(f"Using base interface: {base_interface}")
+    
+    # Read the base configuration
+    base_config = read_parent_interface_config(ssh_client, base_interface)
+    return base_interface, base_config
 
 def main():
     if len(sys.argv) < 6:
@@ -618,8 +833,24 @@ def main():
         print(f"Parent interface: {parent_if}")
         print("=" * 60)
 
-        # Read parent interface configuration once at the beginning
-        parent_config = read_parent_interface_config(ssh_client, parent_if)
+        # Check system manufacturer first
+        is_vmware, manufacturer = check_system_manufacturer(ssh_client)
+        
+        if is_vmware:
+            print("🖥️  VMware environment detected - using VMware-specific configuration")
+            # Create parent interface config for VMware if it doesn't exist
+            if not create_parent_interface_config_vmware(ssh_client, parent_if):
+                print("❌ Failed to create parent interface config. Exiting.")
+                return
+            parent_config = None  # Not needed for VMware
+            base_interface = parent_if
+        else:
+            print("🖥️  Non-VMware environment detected - using bond interface configuration")
+            base_interface, parent_config = get_base_interface_for_non_vmware(ssh_client)
+
+        # Read parent interface configuration once at the beginning (for non-VMware)
+        if not is_vmware and not parent_config:
+            parent_config = read_parent_interface_config(ssh_client, base_interface)
         
         total_attempted = 0
         for entry in entries:
@@ -645,20 +876,25 @@ def main():
             hosts_ip = calculate_hosts_ip(ipaddr)
 
             # Create VLAN interface name
-            vlan_if = f"{parent_if}.{vlan_id}"
+            vlan_if = f"{base_interface}.{vlan_id}"
 
             print(f"\n🔧 Processing VLAN {vlan_id}:")
             print(f"   Interface: {vlan_if}")
             print(f"   IP: {ipaddr}")
-            print(f"   Gateway: {gateway_ip}")  # This will be .1
-            print(f"   Hosts IP: {hosts_ip}")   # This will be .9
+            print(f"   Gateway: {gateway_ip}")
+            print(f"   Hosts IP: {hosts_ip}")
             print(f"   Domain: {domain}")
 
-            # Create VLAN configuration on remote server
-            if create_vlan_config_remote(ssh_client, parent_if, vlan_id, ipaddr, gateway_ip, parent_config):
+            # Create VLAN configuration based on system type
+            if is_vmware:
+                vlan_created = create_vlan_config_vmware(ssh_client, base_interface, vlan_id, ipaddr, gateway_ip)
+            else:
+                vlan_created = create_vlan_config_bond(ssh_client, base_interface, vlan_id, ipaddr, gateway_ip, parent_config)
+            
+            if vlan_created:
                 # Collect data for batch operations
                 interface_names.append(vlan_if)
-                hosts_entries.append((hosts_ip, domain))  # ← Use hosts_ip (.9) instead of gateway_ip
+                hosts_entries.append((hosts_ip, domain))
                 iptables_entries.append((domain, ipaddr))
                 print("\n" + "-" * 40)  # Add separator line
                 total_attempted += 1
